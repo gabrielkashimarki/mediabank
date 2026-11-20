@@ -1,0 +1,47 @@
+{
+  "schema": "getbrolls.marketplace_index/1",
+  "name": "mediabank",
+  "description": "Plugins do MediaBank para o get-brolls.",
+  "plugins": [
+    {
+      "id": "mediabank",
+      "version": "0.2.0",
+      "description": "Cenas de vídeo do MediaBank (acervo classificado, originais no Google Drive): busca por texto e imagem e trecho em MP4 cortado pelo trabalhador do MediaBank. Troque mediabank.exemplo.com em permissions.network pelo host do seu MediaBank.",
+      "tier": "community",
+      "source": {
+        "type": "git",
+        "repo": ".",
+        "ref": null,
+        "commit": "0dcb9ebfbfa9660ce4cb3b9bee2dc4189c47d041",
+        "subdir": "getbrolls/mediabank"
+      },
+      "content_sha256": "1a1e059fd339b4c9926a2f4cf463853c2a3fe47f7178458c869b08a52d68a864",
+      "sdk_api": 1,
+      "requires_getbrolls": ">=2.7,<3",
+      "permissions": {
+        "network": [
+          "mediabank.exemplo.com"
+        ],
+        "env": [
+          "MEDIABANK_URL",
+          "MEDIABANK_CHAVE",
+          "MEDIABANK_ESPERA"
+        ]
+      },
+      "contributes": [
+        "provider",
+        "route"
+      ],
+      "requires": {},
+      "platforms": null,
+      "license": "LicenseRef-Proprietary",
+      "maintainers": [
+        "MediaBank"
+      ],
+      "attestation": null,
+      "yanked": false,
+      "deprecated": null
+    }
+  ],
+  "renames": {}
+}
