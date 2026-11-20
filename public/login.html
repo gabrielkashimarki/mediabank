@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Login | MediaBank</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#fafafa; --panel:#ffffff; --hover:#f4f4f5; --sunk:#f0f0f1; --line:#e7e7e9; --line2:#d9d9dc;
+  --ink:#0b0b0c; --ink2:#3f3f46; --muted:#8a8a93;
+  --pri:#0b0b0c; --pri-ink:#ffffff;
+  --gold:#b8862f; --gold-soft:#f6eedd;
+  --ok:#1f8a5b; --ok-soft:#e5f4ec; --warn:#b26a14; --warn-soft:#fbf0e1; --bad:#c2403b; --bad-soft:#fbe8e7;
+  --shadow:0 12px 32px -8px rgba(0,0,0,.18),0 0 0 1px rgba(0,0,0,.04);
+  --sans:"Geist",ui-sans-serif,system-ui,-apple-system,sans-serif;
+  --mono:"Geist Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  color-scheme:dark;
+  --bg:#0a0a0b; --panel:#111113; --hover:#18181b; --sunk:#1c1c1f; --line:#232327; --line2:#2e2e33;
+  --ink:#f4f4f5; --ink2:#c4c4cc; --muted:#71717a; --pri:#f4f4f5; --pri-ink:#0a0a0b;
+  --gold:#d8a94a; --gold-soft:#2a2213;
+  --ok:#4ccb8e; --ok-soft:#10271c; --warn:#e3a458; --warn-soft:#2b1f10; --bad:#f07a74; --bad-soft:#2d1413;
+  --shadow:0 12px 32px -8px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.05);
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0a0a0b; --panel:#111113; --hover:#18181b; --sunk:#1c1c1f; --line:#232327; --line2:#2e2e33;
+  --ink:#f4f4f5; --ink2:#c4c4cc; --muted:#71717a; --pri:#f4f4f5; --pri-ink:#0a0a0b;
+  --gold:#d8a94a; --gold-soft:#2a2213;
+  --ok:#4ccb8e; --ok-soft:#10271c; --warn:#e3a458; --warn-soft:#2b1f10; --bad:#f07a74; --bad-soft:#2d1413;
+  --shadow:0 12px 32px -8px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.05);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font:14px/1.5 var(--sans);margin:0;-webkit-font-smoothing:antialiased;display:grid;place-items:center}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:40px 36px;width:min(380px,calc(100% - 32px));box-shadow:var(--shadow)}
+.logo{display:flex;align-items:center;gap:10px;margin-bottom:28px}
+.logo i{width:28px;height:28px;border-radius:7px;background:var(--ink);display:grid;place-items:center;color:var(--bg);font:600 13px var(--mono);font-style:normal}
+.logo b{font-weight:600;font-size:16px;letter-spacing:-.01em}
+.logo span{color:var(--muted);font-weight:400}
+.campo{display:grid;gap:6px;margin-bottom:16px}
+.campo label{font-size:13px;font-weight:500;color:var(--ink2)}
+.campo input{height:40px;border:1px solid var(--line2);border-radius:8px;padding:0 12px;background:var(--panel);font-size:14px}
+.campo input:focus{border-color:var(--gold);outline:none;box-shadow:0 0 0 2px var(--gold-soft)}
+.bt{width:100%;height:40px;border:0;border-radius:8px;background:var(--pri);color:var(--pri-ink);font-weight:500;font-size:14px;margin-top:4px}
+.bt:hover{opacity:.9}
+.bt:disabled{opacity:.5;cursor:not-allowed}
+.link{display:inline-block;margin-top:14px;color:var(--ink2);font-size:13px;text-decoration:none;cursor:pointer}
+.link:hover{color:var(--ink);text-decoration:underline}
+.centro{text-align:center}
+.erro{margin-top:12px;padding:10px 12px;border-radius:8px;background:var(--bad-soft);color:var(--bad);font-size:13px;display:none}
+.erro.vis{display:block}
+.sucesso{margin-top:12px;padding:10px 12px;border-radius:8px;background:var(--ok-soft);color:var(--ok);font-size:13px;display:none}
+.sucesso.vis{display:block}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="card">
+  <div class="logo"><i>MB</i><b>MediaBank</b></div>
+
+  <form id="form-login">
+    <div class="campo">
+      <label for="email">E-mail</label>
+      <input id="email" type="email" required autocomplete="email" autofocus>
+    </div>
+    <div class="campo">
+      <label for="senha">Senha</label>
+      <input id="senha" type="password" required autocomplete="current-password">
+    </div>
+    <button class="bt" type="submit" id="bt">Entrar</button>
+    <div class="centro">
+      <a href="#" class="link" id="link-esqueci">Esqueci minha senha</a>
+    </div>
+  </form>
+
+  <form id="form-esqueci" style="display:none">
+    <div class="campo">
+      <label for="esqueci-email">E-mail</label>
+      <input id="esqueci-email" type="email" required autocomplete="email">
+    </div>
+    <button class="bt" type="submit" id="bt-esqueci">Enviar link</button>
+    <div class="centro">
+      <a href="#" class="link" id="link-voltar-login">Voltar ao login</a>
+    </div>
+  </form>
+
+  <form id="form-redefinir" style="display:none">
+    <div class="campo">
+      <label for="nova-senha">Nova senha</label>
+      <input id="nova-senha" type="password" required minlength="10" autocomplete="new-password">
+    </div>
+    <div class="campo">
+      <label for="repita-senha">Repita a senha</label>
+      <input id="repita-senha" type="password" required minlength="10" autocomplete="new-password">
+    </div>
+    <button class="bt" type="submit" id="bt-redefinir">Redefinir senha</button>
+    <div class="centro">
+      <a href="#" class="link" id="link-voltar-redefinir">Voltar ao login</a>
+    </div>
+  </form>
+
+  <div class="erro" id="erro" role="alert"></div>
+  <div class="sucesso" id="sucesso" role="status"></div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+
+function limparAvisos() {
+  $('#erro').classList.remove('vis');
+  $('#sucesso').classList.remove('vis');
+}
+
+function alternarForm(nome) {
+  limparAvisos();
+  $('#form-login').style.display = nome === 'login' ? 'block' : 'none';
+  $('#form-esqueci').style.display = nome === 'esqueci' ? 'block' : 'none';
+  $('#form-redefinir').style.display = nome === 'redefinir' ? 'block' : 'none';
+}
+
+$('#link-esqueci').addEventListener('click', e => {
+  e.preventDefault();
+  alternarForm('esqueci');
+  if ($('#email').value) $('#esqueci-email').value = $('#email').value;
+  $('#esqueci-email').focus();
+});
+
+$('#link-voltar-login').addEventListener('click', e => {
+  e.preventDefault();
+  alternarForm('login');
+  $('#email').focus();
+});
+
+$('#link-voltar-redefinir').addEventListener('click', e => {
+  e.preventDefault();
+  alternarForm('login');
+  $('#email').focus();
+});
+
+$('#form-login').addEventListener('submit', async e => {
+  e.preventDefault();
+  $('#bt').disabled = true;
+  limparAvisos();
+  try {
+    const res = await fetch('/api/painel/login', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: $('#email').value, senha: $('#senha').value })
+    });
+    if (res.ok) { location.href = '/'; return; }
+    const d = await res.json();
+    $('#erro').textContent = res.status === 429 ? d.erro : 'E-mail ou senha errados';
+    $('#erro').classList.add('vis');
+  } catch {
+    $('#erro').textContent = 'Erro de conexão';
+    $('#erro').classList.add('vis');
+  } finally {
+    $('#bt').disabled = false;
+  }
+});
+
+$('#form-esqueci').addEventListener('submit', async e => {
+  e.preventDefault();
+  const email = $('#esqueci-email').value.trim();
+  if (!email) return;
+  $('#bt-esqueci').disabled = true;
+  limparAvisos();
+  try {
+    const res = await fetch('/api/painel/esqueci-senha', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    if (res.ok) {
+      $('#sucesso').textContent = `Se ${email} estiver cadastrado, o link chega em instantes. Ele vale por 30 minutos. Confira também o spam.`;
+      $('#sucesso').classList.add('vis');
+    } else {
+      const d = await res.json();
+      $('#erro').textContent = d.erro || 'Erro ao pedir redefinição.';
+      $('#erro').classList.add('vis');
+    }
+  } catch {
+    $('#erro').textContent = 'Erro de conexão';
+    $('#erro').classList.add('vis');
+  } finally {
+    $('#bt-esqueci').disabled = false;
+  }
+});
+
+let tokenRedefinicao = null;
+const params = new URLSearchParams(location.search);
+if (params.has('redefinir')) {
+  tokenRedefinicao = params.get('redefinir');
+  history.replaceState(null, '', location.pathname);
+  alternarForm('redefinir');
+  $('#nova-senha').focus();
+}
+
+$('#form-redefinir').addEventListener('submit', async e => {
+  e.preventDefault();
+  limparAvisos();
+  const senha = $('#nova-senha').value;
+  const repita = $('#repita-senha').value;
+  if (senha.length < 10) {
+    $('#erro').textContent = 'A senha precisa ter pelo menos 10 caracteres.';
+    $('#erro').classList.add('vis');
+    return;
+  }
+  if (senha !== repita) {
+    $('#erro').textContent = 'As senhas não conferem.';
+    $('#erro').classList.add('vis');
+    return;
+  }
+  $('#bt-redefinir').disabled = true;
+  try {
+    const res = await fetch('/api/painel/redefinir-senha', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: tokenRedefinicao, senha })
+    });
+    if (res.ok) {
+      alternarForm('login');
+      $('#sucesso').textContent = 'Senha alterada. Entre com a nova senha.';
+      $('#sucesso').classList.add('vis');
+    } else {
+      const d = await res.json();
+      $('#erro').textContent = d.erro || 'Erro ao redefinir senha.';
+      $('#erro').classList.add('vis');
+    }
+  } catch {
+    $('#erro').textContent = 'Erro de conexão';
+    $('#erro').classList.add('vis');
+  } finally {
+    $('#bt-redefinir').disabled = false;
+  }
+});
+</script>

@@ -1,0 +1,19 @@
+[project]
+name = "mediabank-sinais"
+version = "0.1.0"
+description = "Estética (pyiqa laion_aes) e embedding CLIP do MediaBank"
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=2.5.3",
+    "open-clip-torch>=3.3.0",
+    "opencv-python-headless>=5.0.0.93",
+    "pillow>=11",
+    "pyiqa>=0.1.16",
+    # o pacote clip antigo, usado pelo laion_aes, importa pkg_resources
+    "scenedetect>=0.7.2",
+    "setuptools<81",
+    "torch>=2.14",
+]
+
+[tool.uv]
+package = false

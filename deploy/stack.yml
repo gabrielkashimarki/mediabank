@@ -1,0 +1,72 @@
+# Exemplo de stack Docker Swarm atrás do Traefik. Adapte domínio, rede, certresolver, volume e limites ao seu servidor.
+# As variáveis ${...} vêm do ambiente de quem faz o deploy (ou do gerenciador de stacks), nunca deste arquivo.
+# Troque mediabank.exemplo.com pelo seu domínio em BASE_URL e nas regras do Traefik.
+version: "3.8"
+
+services:
+  web:
+    image: mediabank:${VERSAO}
+    environment:
+      - DIR_DADOS=/dados
+      - PORT=3000
+      - COOKIE_SEGURO=1
+      - AGENDADOR=1
+      - SYNC_LIMITE=200
+      - IA_LIMITE=150
+      - MODELO_DESCRICAO=${MODELO_DESCRICAO}
+      - MODELO_EMBEDDING=openai/text-embedding-3-small
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REFRESH_TOKEN=${GOOGLE_REFRESH_TOKEN}
+      - DRIVE_ID=${DRIVE_ID}  # id do drive compartilhado com o acervo
+      - TYPESAFE_API_KEY=${TYPESAFE_API_KEY}
+      - SYNC_AUTOMATICO=1
+      - IA_AUTOMATICA=1
+      - IA_CONCORRENCIA=8
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORTA=${SMTP_PORTA}
+      - SMTP_USUARIO=${SMTP_USUARIO}
+      - SMTP_SENHA=${SMTP_SENHA}
+      - SMTP_REMETENTE=${SMTP_REMETENTE}
+      - BASE_URL=https://mediabank.exemplo.com
+    volumes:
+      - /opt/mediabank/dados:/dados
+    networks:
+      - rede_publica
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 768M
+          cpus: "0.5"
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=rede_publica
+        - traefik.http.services.mediabank.loadbalancer.server.port=3000
+        - traefik.http.routers.mediabank.rule=Host(`mediabank.exemplo.com`)
+        - traefik.http.routers.mediabank.entrypoints=websecure
+        - traefik.http.routers.mediabank.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.mediabank.service=mediabank
+        # login com limite por IP (o bloqueio do app é por e-mail)
+        - traefik.http.routers.mediabank-login.rule=Host(`mediabank.exemplo.com`) && Path(`/api/painel/login`)
+        - traefik.http.routers.mediabank-login.entrypoints=websecure
+        - traefik.http.routers.mediabank-login.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.mediabank-login.service=mediabank
+        - traefik.http.routers.mediabank-login.middlewares=mediabank-login-limite
+        - traefik.http.middlewares.mediabank-login-limite.ratelimit.average=10
+        - traefik.http.middlewares.mediabank-login-limite.ratelimit.period=1m
+        - traefik.http.middlewares.mediabank-login-limite.ratelimit.burst=5
+        # esqueci-senha com limite por IP
+        - traefik.http.routers.mediabank-esqueci.rule=Host(`mediabank.exemplo.com`) && Path(`/api/painel/esqueci-senha`)
+        - traefik.http.routers.mediabank-esqueci.entrypoints=websecure
+        - traefik.http.routers.mediabank-esqueci.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.mediabank-esqueci.service=mediabank
+        - traefik.http.routers.mediabank-esqueci.middlewares=mediabank-esqueci-limite
+        - traefik.http.middlewares.mediabank-esqueci-limite.ratelimit.average=10
+        - traefik.http.middlewares.mediabank-esqueci-limite.ratelimit.period=1m
+        - traefik.http.middlewares.mediabank-esqueci-limite.ratelimit.burst=5
+
+networks:
+  rede_publica:
+    external: true

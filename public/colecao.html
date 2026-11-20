@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Coleção | MediaBank</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#fafafa; --panel:#ffffff; --hover:#f4f4f5; --sunk:#f0f0f1; --line:#e7e7e9; --line2:#d9d9dc;
+  --ink:#0b0b0c; --ink2:#3f3f46; --muted:#8a8a93;
+  --pri:#0b0b0c; --pri-ink:#ffffff;
+  --gold:#b8862f; --gold-soft:#f6eedd;
+  --shadow:0 12px 32px -8px rgba(0,0,0,.18),0 0 0 1px rgba(0,0,0,.04);
+  --sans:"Geist",ui-sans-serif,system-ui,-apple-system,sans-serif;
+  --mono:"Geist Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  color-scheme:dark;
+  --bg:#0a0a0b; --panel:#111113; --hover:#18181b; --sunk:#1c1c1f; --line:#232327; --line2:#2e2e33;
+  --ink:#f4f4f5; --ink2:#c4c4cc; --muted:#71717a; --pri:#f4f4f5; --pri-ink:#0a0a0b;
+  --gold:#d8a94a; --gold-soft:#2a2213;
+  --shadow:0 12px 32px -8px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.05);
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0a0a0b; --panel:#111113; --hover:#18181b; --sunk:#1c1c1f; --line:#232327; --line2:#2e2e33;
+  --ink:#f4f4f5; --ink2:#c4c4cc; --muted:#71717a; --pri:#f4f4f5; --pri-ink:#0a0a0b;
+  --gold:#d8a94a; --gold-soft:#2a2213;
+  --shadow:0 12px 32px -8px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.05);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font:14px/1.5 var(--sans);margin:0;-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+.wrap{max-width:1100px;margin:0 auto;padding:24px 20px 60px}
+.capa{padding:40px 0 24px;display:grid;gap:8px}
+.capa small{font:11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}
+.capa h1{margin:0;font-size:28px;font-weight:500;letter-spacing:-.02em;text-wrap:balance}
+.capa p{margin:0;color:var(--muted);max-width:62ch;font-size:14px}
+.grade{display:flex;flex-wrap:wrap;gap:4px}
+.grade::after{content:"";flex-grow:999}
+.it{position:relative;border:0;padding:0;background:var(--sunk);border-radius:6px;overflow:hidden;max-width:100%}
+.it img{display:block;width:100%;height:100%;object-fit:cover;transition:transform .3s}
+.it:hover img{transform:scale(1.02)}
+.vazio{padding:80px 0;text-align:center;color:var(--muted);width:100%}
+.lightbox{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.92);display:grid;place-items:center;cursor:zoom-out}
+.lightbox img{max-width:calc(100% - 40px);max-height:calc(100% - 40px);object-fit:contain;border-radius:2px}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <div class="capa">
+    <small>MediaBank</small>
+    <h1 id="nome"></h1>
+    <p id="descricao"></p>
+  </div>
+  <div class="grade" id="grade"></div>
+</div>
+
+<div class="lightbox" id="lightbox" hidden>
+  <img id="lb-img" alt="">
+</div>
+
+<script>
+function esc(t) {
+  if (t == null) return '';
+  return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+const $ = s => document.querySelector(s);
+const basePath = location.pathname;
+
+async function carregar() {
+  try {
+    const res = await fetch(basePath + '/dados', { credentials: 'same-origin' });
+    if (!res.ok) { $('#grade').innerHTML = '<p class="vazio">Coleção não encontrada.</p>'; return; }
+    const c = await res.json();
+    document.title = c.nome + ' | MediaBank';
+    $('#nome').innerHTML = esc(c.nome);
+    if (c.descricao) $('#descricao').innerHTML = esc(c.descricao);
+    if (!c.fotos || !c.fotos.length) {
+      $('#grade').innerHTML = '<p class="vazio">Nenhuma foto disponível nesta coleção.</p>';
+      return;
+    }
+    const h = 220;
+    $('#grade').innerHTML = c.fotos.map(f => {
+      const ar = (f.largura && f.altura) ? f.largura / f.altura : 1;
+      return `<button class="it" data-id="${esc(f.id)}" style="flex:${ar} 1 ${Math.round(ar * (innerWidth < 600 ? h * .6 : h))}px;aspect-ratio:${f.largura || 1}/${f.altura || 1}" aria-label="${esc(f.alt || f.titulo || '')}">
+        <img src="${basePath}/midia/thumb/${esc(f.id)}.jpg" alt="${esc(f.alt || f.titulo || '')}" loading="lazy">
+      </button>`;
+    }).join('');
+  } catch {
+    $('#grade').innerHTML = '<p class="vazio">Erro ao carregar a coleção.</p>';
+  }
+}
+
+$('#grade').addEventListener('click', e => {
+  const it = e.target.closest('.it');
+  if (!it) return;
+  $('#lb-img').src = basePath + '/midia/preview/' + it.dataset.id + '.jpg';
+  $('#lb-img').alt = it.getAttribute('aria-label') || '';
+  $('#lightbox').hidden = false;
+});
+
+$('#lightbox').addEventListener('click', () => { $('#lightbox').hidden = true; });
+
+addEventListener('keydown', e => {
+  if (e.key === 'Escape') $('#lightbox').hidden = true;
+});
+
+carregar();
+</script>

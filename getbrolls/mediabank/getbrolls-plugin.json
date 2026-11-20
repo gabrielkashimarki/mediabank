@@ -1,0 +1,34 @@
+{
+  "id": "mediabank",
+  "name": "MediaBank",
+  "description": "Cenas de vídeo do MediaBank (acervo classificado, originais no Google Drive): busca por texto e imagem e trecho em MP4 cortado pelo trabalhador do MediaBank. Troque mediabank.exemplo.com em permissions.network pelo host do seu MediaBank.",
+  "version": "0.2.0",
+  "sdk_api": 1,
+  "requires_getbrolls": ">=2.7,<3",
+  "entry": "plugin.py",
+  "contributes": {
+    "providers": [
+      "mediabank"
+    ],
+    "routes": [
+      "mediabank"
+    ]
+  },
+  "permissions": {
+    "network": [
+      "mediabank.exemplo.com"
+    ],
+    "env": [
+      "MEDIABANK_URL",
+      "MEDIABANK_CHAVE",
+      "MEDIABANK_ESPERA"
+    ]
+  },
+  "license": "LicenseRef-Proprietary",
+  "keywords": [
+    "mediabank",
+    "acervo",
+    "drive",
+    "broll"
+  ]
+}
