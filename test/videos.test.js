@@ -448,3 +448,24 @@ test('tags: a IA grava normalizadas, a busca filtra por tag (E entre tags) e a f
   assert.deepEqual(await achar({ tag: ['noite', 'deck'] }), []);
   assert.deepEqual(facetas(db, { cliente: 'exemplo', tipo_midia: 'video', externo: false }).tag, { noite: 1, 'taça': 1 });
 });
+
+test('tags por take: a análise grava as tags de cada cena, o vídeo fica com as mais frequentes e o filtro acha o take', async (t) => {
+  const { db, dir, id } = await videoProcessado(3);
+  const chave = criarChave(db, 'lote');
+  const srv = criarApp({ db, dirDados: dir }).listen(0);
+  t.after(() => srv.close());
+  const q = { assunto: 7, enquadramento: 7, composicao: 7, luz: 7, limpeza: 7, momento: 7 };
+  const analise = { titulo: 'Evento à noite', descricao: 'x'.repeat(250), espaco: 'Bar', tipo: 'Bar', luz_tipo: 'Noturna', luz_direcao: 'Frontal',
+    plano: 'Geral', altura_camera: 'Olho', composicao: 'Centralizada', ponto_vista: 'Frontal', profundidade: 'Total', posicao_assunto: 'Centro',
+    sazonal: 'Nenhum', tratamento: 'Natural', tem_crianca: false, qualidade: q, tags: ['evento'],
+    cenas: [{ n: 1, descricao: 'drone sobre o deck', tags: ['Drone', 'deck', 'noite'], qualidade: q },
+      { n: 2, descricao: 'brinde', tags: ['taça', 'noite'], qualidade: q }, { n: 3, descricao: 'pista', tags: ['dança', 'noite'], qualidade: q }] };
+  const r = await fetch(`http://127.0.0.1:${srv.address().port}/api/lote/videos/${id}/analise`, { method: 'POST', headers: { 'X-API-Key': chave, 'Content-Type': 'application/json' }, body: JSON.stringify(analise) });
+  assert.equal(r.status, 200);
+  assert.deepEqual(db.prepare('SELECT tags FROM cenas WHERE asset_id = ? ORDER BY ordem').all(id).map(c => JSON.parse(c.tags)), [['drone', 'deck', 'noite'], ['taça', 'noite'], ['dança', 'noite']]);
+  assert.equal(JSON.parse(db.prepare('SELECT tags FROM assets WHERE id = ?').get(id).tags)[0], 'noite');
+  db.prepare('UPDATE assets SET tem_crianca = 0 WHERE id = ?').run(id);
+  const { buscarVideos } = require('../src/busca_video');
+  const vs = await buscarVideos(db, { cliente: 'exemplo', externo: 'acervo', tag: 'drone' });
+  assert.deepEqual(vs.map(v => v.cenas.map(c => c.descricao)), [['drone sobre o deck']]);
+});

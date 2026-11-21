@@ -251,7 +251,7 @@ CREATE TABLE IF NOT EXISTS cenas (
   ordem INTEGER NOT NULL,
   ini REAL NOT NULL, fim REAL NOT NULL,
   phash TEXT,
-  descricao TEXT, etiquetas TEXT NOT NULL DEFAULT '{}', transcricao TEXT,
+  descricao TEXT, etiquetas TEXT NOT NULL DEFAULT '{}', tags TEXT NOT NULL DEFAULT '[]', transcricao TEXT,
   -- sinais de take: técnica e estética do trabalhador; qualidade e rubrica da IA; nota_take em percentil por cliente
   nota_nitidez REAL, nota_exposicao REAL, nota_tremido REAL, nota_estetica REAL,
   qualidade TEXT NOT NULL DEFAULT '{}', nota_rubrica REAL,
@@ -398,6 +398,10 @@ const COLUNAS_NOVAS = {
     ...Object.fromEntries(['duracao REAL', 'fps REAL', 'codec TEXT', 'tem_audio INTEGER', 'orientacao TEXT', 'transcricao TEXT',
       'previa INTEGER', 'st_video TEXT', 'st_quadros TEXT', 'fonte TEXT', 'fonte_id TEXT', 'fonte_url TEXT', 'autor TEXT',
       'licenca TEXT', 'origem_grupo TEXT', 'derivado_de TEXT', 'arquivo TEXT'].map(c => c.split(' '))),
+  },
+  // tags por take (a busca de vídeo é por cena)
+  cenas: {
+    tags: "TEXT NOT NULL DEFAULT '[]'",
   },
   colecoes: {
     pasta_id: 'TEXT',

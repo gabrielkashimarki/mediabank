@@ -11,7 +11,7 @@ const FORMATOS_TRECHO = ['original', '1080p', '540p'];
 const regra = ({ cliente, externo }) => (externo === 'acervo' ? acervo(cliente) : externo ? exposicao(cliente) : sqlCliente(cliente));
 
 function formatarCena(c, base) {
-  return { id: c.id, ordem: c.ordem, ini: c.ini, fim: c.fim, descricao: c.descricao, transcricao: c.transcricao || null,
+  return { id: c.id, ordem: c.ordem, ini: c.ini, fim: c.fim, descricao: c.descricao, tags: JSON.parse(c.tags || '[]'), transcricao: c.transcricao || null,
     nota_take: c.nota_take, take_grupo: c.take_grupo, ...(c.pontos != null && { pontos: c.pontos }), quadro_url: `${base}/cenas/${c.id}.jpg` };
 }
 

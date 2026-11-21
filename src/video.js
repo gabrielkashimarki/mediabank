@@ -1,6 +1,7 @@
 // Etapas de vídeo do pipeline, depois que o trabalhador (py/videos.py) entrega cenas e quadros:
 // IA por grade de quadros numerados, embedding de texto por vídeo e por cena, e vetor de imagem de cada quadro.
 const fs = require('node:fs');
+const { normalizarTags, tagsDoVideo } = require('./tags');
 const path = require('node:path');
 const sharp = require('sharp');
 const { montarPrompt, validarAnalise, CRITERIOS, PESOS_QUALIDADE } = require('./ia');
@@ -28,6 +29,7 @@ async function montarGrade(arquivos) {
 
 const CAMPO_CENAS = n => `- cenas: lista com ${n} objetos, um por quadro, na ordem: { "n": número do quadro,
   "descricao": até 30 palavras, o que acontece naquele trecho (ação, pessoas, objetos, luz),
+  "tags": 3 a 8 palavras-chave em minúsculas, só do que aparece NESTE trecho (objetos, ação, clima, luz, sinônimos comuns),
   "qualidade": as mesmas seis notas inteiras de 1 a 10 (assunto, enquadramento, composicao, luz, limpeza, momento), julgando o trecho como take para um vídeo de venda }`;
 
 // Vídeo inteiro: os campos de foto valem para o vídeo como um todo, mais a lista de cenas.
@@ -60,7 +62,8 @@ function validarCenas(lista, n) {
     const c = porN.get(i + 1) || {};
     const q = c.qualidade && typeof c.qualidade === 'object' ? c.qualidade : null;
     const rub = notaRubrica(q);
-    return { descricao: typeof c.descricao === 'string' ? c.descricao.slice(0, 400) : null, qualidade: rub == null ? '{}' : JSON.stringify(q), nota_rubrica: rub };
+    return { descricao: typeof c.descricao === 'string' ? c.descricao.slice(0, 400) : null, qualidade: rub == null ? '{}' : JSON.stringify(q), nota_rubrica: rub,
+      tags: JSON.stringify(normalizarTags(c.tags).slice(0, 8)) };
   });
 }
 
@@ -117,7 +120,7 @@ async function etapaIaVideo(db, { dirDados, cliente, modelo, limite = Infinity, 
   const fila = db.prepare(`SELECT id, cliente_id, etiquetas, transcricao FROM assets WHERE tipo_midia = 'video' AND st_video = 'ok' AND st_tecnica = 'ok' AND st_ia = 'pendente' LIMIT ?`)
     .all(Number.isFinite(limite) ? limite : -1);
   const cenasDe = db.prepare("SELECT id FROM cenas WHERE asset_id = ? AND st_tecnica = 'ok' ORDER BY ordem");
-  const updCena = db.prepare('UPDATE cenas SET descricao = @descricao, qualidade = @qualidade, nota_rubrica = @nota_rubrica WHERE id = @id');
+  const updCena = db.prepare('UPDATE cenas SET descricao = @descricao, qualidade = @qualidade, nota_rubrica = @nota_rubrica, tags = @tags WHERE id = @id');
   let ok = 0, erro = 0;
   await emParalelo(fila, concorrencia, async a => {
     try {
@@ -125,6 +128,7 @@ async function etapaIaVideo(db, { dirDados, cliente, modelo, limite = Infinity, 
       const r = await analisarVideo(cenas, { cliente, modelo, transcricao: a.transcricao, analise: analiseDe(a.cliente_id) });
       // etiqueta que veio da curadoria (importação, equipe) vale mais que a da IA
       if (r.campos.etiquetas) r.campos.etiquetas = JSON.stringify({ ...r.campos.etiquetas, ...JSON.parse(a.etiquetas || '{}') });
+      r.campos.tags = JSON.stringify(tagsDoVideo(r.cenas.map(c => JSON.parse(c.tags)), JSON.parse(r.campos.tags || '[]')));
       const sets = Object.keys(r.campos).map(c => `${c} = @${c}`).join(', ');
       db.transaction(() => {
         db.prepare(`UPDATE assets SET ${sets}, st_ia = 'ok', erro = NULL WHERE id = @id`).run({ ...r.campos, id: a.id });
@@ -141,7 +145,9 @@ async function etapaIaVideo(db, { dirDados, cliente, modelo, limite = Infinity, 
 
 // texto da cena: o que acontece nela, a fala e o contexto do vídeo (título, espaço, evento da pasta)
 function textoDaCena(c, v) {
-  return [c.descricao, c.transcricao, v.titulo, JSON.parse(v.tags || '[]').join(', '), v.espaco, v.tipo_evento, v.evento_pasta, v.caminho_pasta].filter(Boolean).join('\n');
+  // tags do take; cena sem tag (classificada antes) usa as do vídeo
+  const tags = JSON.parse(c.tags || '[]');
+  return [c.descricao, c.transcricao, v.titulo, (tags.length ? tags : JSON.parse(v.tags || '[]')).join(', '), v.espaco, v.tipo_evento, v.evento_pasta, v.caminho_pasta].filter(Boolean).join('\n');
 }
 function textoDoVideo(v, cenas) {
   return [v.titulo, v.descricao, JSON.parse(v.tags || '[]').join(', '), v.legenda, v.espaco, v.local, v.tipo_evento, v.evento_pasta, v.caminho_pasta,
@@ -151,7 +157,7 @@ function textoDoVideo(v, cenas) {
 async function etapaEmbeddingVideo(db, { cliente, modelo }) {
   const mapa = new Map(db.prepare('SELECT id, nome, pai_id, caminho, evento FROM pastas').all().map(p => [p.id, p]));
   const fila = db.prepare("SELECT * FROM assets WHERE tipo_midia = 'video' AND st_ia = 'ok' AND st_embedding = 'pendente'").all();
-  const cenasDe = db.prepare("SELECT id, descricao, transcricao FROM cenas WHERE asset_id = ? AND st_tecnica = 'ok' ORDER BY ordem");
+  const cenasDe = db.prepare("SELECT id, descricao, transcricao, tags FROM cenas WHERE asset_id = ? AND st_tecnica = 'ok' ORDER BY ordem");
   const delV = db.prepare('DELETE FROM vec_texto WHERE asset_id = ?'), insV = db.prepare('INSERT INTO vec_texto(asset_id, embedding) VALUES (?, ?)');
   const delC = db.prepare('DELETE FROM vec_cena WHERE cena_id = ?'), insC = db.prepare('INSERT INTO vec_cena(cena_id, embedding) VALUES (?, ?)');
   const marca = db.prepare("UPDATE assets SET st_embedding = 'ok' WHERE id = ?");

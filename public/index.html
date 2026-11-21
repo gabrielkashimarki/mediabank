@@ -55,6 +55,7 @@ svg{flex:none}
 .nav .n{margin-left:auto;color:var(--muted);font:11px var(--mono)}
 .facetas{overflow-y:auto;padding:8px 8px 24px;flex:1}
 .tags{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 2px}
+.cena-v .tags{gap:4px;margin-top:4px}.cena-v .tag-chip{font-size:11px;padding:1px 7px}
 .tag-chip{border:1px solid var(--line);background:var(--sunk);color:var(--ink2);border-radius:999px;padding:3px 10px;font-size:12px;cursor:pointer}
 .tag-chip:hover{border-color:var(--ink2)}
 .fac{border-bottom:1px solid var(--line);padding-block:6px}
@@ -551,8 +552,9 @@ function montarRodape() {
 }
 
 // tags da mídia como chips; clicar filtra a lista por aquela tag
-const chipsTags = tags => (tags && tags.length
-  ? `<div class="tags">${tags.map(t => `<button class="tag-chip" data-tag="${esc(t)}">${esc(t)}</button>`).join('')}</div>` : '');
+// dentro do botão da cena o chip é span (botão dentro de botão não vale em HTML)
+const chipsTags = (tags, el = 'button') => (tags && tags.length
+  ? `<span class="tags">${tags.map(t => `<${el} class="tag-chip" data-tag="${esc(t)}">${esc(t)}</${el}>`).join('')}</span>` : '');
 document.addEventListener('click', e => {
   const b = e.target.closest('.tag-chip');
   if (!b) return;
@@ -1419,7 +1421,7 @@ function desenharVideo() {
       <button class="cena-v" data-cena="${esc(c.id)}" aria-pressed="${cenaSel && cenaSel.id === c.id}">
         <img src="${esc(c.quadro_url)}" alt="" loading="lazy">
         <span><span class="t">${tempo(c.ini)}–${tempo(c.fim)}${c.nota_take != null ? ` · take ${c.nota_take.toFixed(1)}` : ''}${c.take_grupo ? ' · <a href="#" data-grupo="' + esc(c.take_grupo) + '">ver takes</a>' : ''}</span>
-        <p>${esc(c.descricao || 'sem descrição')}</p></span>
+        <p>${esc(c.descricao || 'sem descrição')}</p>${chipsTags(c.tags, 'span')}</span>
       </button>`).join('')}</div></div>
     <div class="bloco trecho-v"><h3>Baixar trecho</h3>
       <div class="linha"><button class="ic" id="vv-ini">Início aqui</button><button class="ic" id="vv-fim">Fim aqui</button>

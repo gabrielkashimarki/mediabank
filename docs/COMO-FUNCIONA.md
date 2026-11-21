@@ -66,6 +66,9 @@ pessoas (painel), para agentes (MCP) e para outros sistemas (API v1, API v2 e o 
   descrição; para o que já foi classificado antes, `node scripts/tags-das-descricoes.js` gera a partir do título e da descrição
   (só texto, custa uma fração da IA de visão). Aparecem como chips na ficha (clicar filtra), viram faceta na lateral (as 40 mais
   comuns do recorte; marcar duas traz o que tem as duas) e podem ser editadas no visor.
+- **Tags por take**: no vídeo, cada cena tem as próprias tags (3 a 8, só do que aparece naquele trecho), e o vídeo mostra as mais
+  frequentes entre as cenas. O filtro por tag acha o take, não o vídeo inteiro, e o texto da busca de cada cena usa as tags dela.
+  `node scripts/tags-das-descricoes.js --cenas` preenche as cenas classificadas antes, a partir da descrição de cada uma.
 - **Na busca**: as tags entram no mesmo texto que vira vetor, junto com o título e a descrição. Numa medição com 200 buscas, isso
   levou o resultado certo para os 5 primeiros em 93% das vezes, contra 86% só com a descrição. O casamento exato de palavra
   com a tag piorou a ordem, por isso a tag serve para navegar e filtrar, não para pontuar.

@@ -142,7 +142,7 @@ function criarMcp({ db, dirDados, embedQuery, embedQuadroQuery, drive }) {
       return [{ type: 'text', text: JSON.stringify({ ...resumo(a), legenda: a.legenda, alt: a.alt }, null, 1) }, imagem('preview', a.id)].filter(Boolean);
     }
     const umVideo = id => db.prepare(`SELECT a.* FROM assets a WHERE a.id = ? AND a.tipo_midia = 'video' AND a.st_video = 'ok' AND ${acervo(cliente)}`).get(id);
-    const cenaResumo = c => ({ id: c.id, ini: c.ini, fim: c.fim, descricao: c.descricao, nota_take: c.nota_take, ...(c.transcricao && { fala: c.transcricao }) });
+    const cenaResumo = c => ({ id: c.id, ini: c.ini, fim: c.fim, descricao: c.descricao, tags: JSON.parse(c.tags || '[]'), nota_take: c.nota_take, ...(c.transcricao && { fala: c.transcricao }) });
     const resumoVideo = a => ({ id: a.id, titulo: a.titulo, descricao: a.descricao, tags: JSON.parse(a.tags || '[]'), espaco: a.espaco, tipo_evento: a.tipo_evento,
       duracao: a.duracao, largura: a.largura, altura: a.altura, aprovacao: a.aprovacao, drive_url: a.drive_id ? `https://drive.google.com/file/d/${a.drive_id}/view` : null });
     if (nome === 'buscar_videos') {

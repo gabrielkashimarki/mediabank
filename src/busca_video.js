@@ -18,8 +18,14 @@ function melhoresDoGrupo(cenas) {
 async function buscarVideos(db, filtros, { embedQuery, embedQuadroQuery } = {}) {
   const limite = Math.min(Math.max(Math.trunc(Number(filtros.limite)) || 24, 1), 100);
   const offset = Math.max(Math.trunc(Number(filtros.offset)) || 0, 0);
-  const { onde, params, exposta } = montarOnde({ ...filtros, tipo_midia: 'video' });
-  const cenas = db.prepare(`SELECT c.id, c.asset_id, c.ordem, c.ini, c.fim, c.descricao, c.transcricao, c.nota_take, c.take_grupo
+  // tag filtra o take: cena com a tag (cena ainda sem tags usa as do vídeo)
+  const { tag, ...semTag } = filtros;
+  const { onde, params, exposta } = montarOnde({ ...semTag, tipo_midia: 'video' });
+  for (const t of [].concat(tag ?? []).map(x => String(x).toLowerCase()).filter(Boolean)) {
+    onde.push(`(EXISTS (SELECT 1 FROM json_each(c.tags) WHERE value = ?) OR (c.tags = '[]' AND EXISTS (SELECT 1 FROM json_each(a.tags) WHERE value = ?)))`);
+    params.push(t, t);
+  }
+  const cenas = db.prepare(`SELECT c.id, c.asset_id, c.ordem, c.ini, c.fim, c.descricao, c.transcricao, c.nota_take, c.take_grupo, c.tags
     FROM cenas c JOIN assets a ON a.id = c.asset_id WHERE ${onde.join(' AND ')} AND c.st_tecnica = 'ok'`).all(...params);
   const q = String(filtros.q || '').trim();
   let pontos;

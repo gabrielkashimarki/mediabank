@@ -14,4 +14,12 @@ function normalizarTags(lista) {
   return [...vistas];
 }
 
-module.exports = { normalizarTags, MAX_TAGS };
+// tags do vídeo: as mais frequentes entre as cenas (empate: a que apareceu primeiro); sem tag de cena, fica a do vídeo
+function tagsDoVideo(tagsDasCenas, tagsDoVideoTodo = []) {
+  const conta = new Map();
+  for (const t of tagsDasCenas.flat()) conta.set(t, (conta.get(t) || 0) + 1);
+  if (!conta.size) return normalizarTags(tagsDoVideoTodo);
+  return [...conta.entries()].sort((a, b) => b[1] - a[1]).slice(0, MAX_TAGS).map(([t]) => t);
+}
+
+module.exports = { normalizarTags, tagsDoVideo, MAX_TAGS };

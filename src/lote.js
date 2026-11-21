@@ -8,6 +8,7 @@ const { exigirEscopo } = require('./chaves');
 const { medir, avaliar, LIMITES } = require('./tecnica');
 const { registrar, vocabularioDe, VOCABULARIOS } = require('./clientes');
 const { analiseDe, validarCenas } = require('./video');
+const { tagsDoVideo } = require('./tags');
 
 // cena reprovada no portão de vídeo: tremido acima disto (deslocamento médio entre quadros, em px a 160 px de largura).
 // Só o extremo: nos 20 primeiros brutos reais de um cliente, câmera de celular andando deu 1,7 a 3,6, e o
@@ -47,7 +48,8 @@ function criarLote({ db, dirDados }) {
     // etiqueta que veio da curadoria (importação, equipe) vale mais que a da classificação
     if (v.campos.etiquetas) v.campos.etiquetas = JSON.stringify({ ...v.campos.etiquetas, ...JSON.parse(a.etiquetas || '{}') });
     const sets = Object.keys(v.campos).map(c => `${c} = @${c}`).join(', ');
-    const updCena = db.prepare('UPDATE cenas SET descricao = @descricao, qualidade = @qualidade, nota_rubrica = @nota_rubrica WHERE id = @id');
+    const updCena = db.prepare('UPDATE cenas SET descricao = @descricao, qualidade = @qualidade, nota_rubrica = @nota_rubrica, tags = @tags WHERE id = @id');
+    v.campos.tags = JSON.stringify(tagsDoVideo(porCena.map(c => JSON.parse(c.tags)), JSON.parse(v.campos.tags || '[]')));
     db.transaction(() => {
       db.prepare(`UPDATE assets SET ${sets}, st_ia = 'ok', st_embedding = 'pendente', erro = NULL WHERE id = @id`).run({ ...v.campos, id: a.id });
       cenas.forEach((c, i) => updCena.run({ ...porCena[i], id: c.id }));
