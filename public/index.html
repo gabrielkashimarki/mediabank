@@ -386,6 +386,7 @@ dialog .fechar{border:0;background:transparent;color:var(--muted);font-size:12px
           <span class="mono" id="contagem"></span>
           <select id="ordem" aria-label="Ordenar"><option value="nota">Nota</option><option value="ia">Nota da IA</option><option value="recente">Mais recente</option></select>
           <select id="nota-min" aria-label="Nota mínima da IA"><option value="">Qualquer nota</option><option value="5">Nota 5+</option><option value="6">Nota 6+</option><option value="7">Nota 7+</option><option value="8">Nota 8+</option><option value="9">Nota 9+</option></select>
+          <select id="arte" aria-label="Fotos ou artes gráficas"><option value="">Fotos e artes</option><option value="sem">Só fotos</option><option value="so">Só artes gráficas</option></select>
           <select id="pessoas" aria-label="Pessoas na foto"><option value="">Com ou sem pessoas</option><option value="sem">Sem pessoas</option><option value="com">Com pessoas</option></select>
           <label style="display:flex;align-items:center;gap:6px">Tamanho <input id="zoom" type="range" min="120" max="340" value="220"></label>
           <button class="ic" id="bt-sel">Selecionar</button>
@@ -401,6 +402,7 @@ dialog .fechar{border:0;background:transparent;color:var(--muted);font-size:12px
         <div class="dir">
           <select id="tema-v" aria-label="Tema" hidden></select>
           <select id="uso-v" aria-label="Para que o vídeo foi feito" hidden></select>
+          <select id="funcao-v" aria-label="Função do vídeo" hidden></select>
           <select id="nota-min-v" aria-label="Nota mínima da IA"><option value="">Qualquer nota</option><option value="5">Nota 5+</option><option value="6">Nota 6+</option><option value="7">Nota 7+</option><option value="8">Nota 8+</option></select>
           <select id="pessoas-v" aria-label="Pessoas no vídeo"><option value="">Com ou sem pessoas</option><option value="sem">Sem pessoas</option><option value="com">Com pessoas</option></select>
           <select id="orientacao-v" aria-label="Formato"><option value="">Todos os formatos</option><option value="horizontal">Horizontal</option><option value="vertical">Vertical</option></select>
@@ -520,7 +522,8 @@ async function iniciar() {
   montarRodape();
   montarEspacos();
   carregarFotos();
-  if (!usuario.onboarding_feito) {
+  abrirDoLink();
+  if (!usuario.onboarding_feito && !location.hash) {
     abrirTour();
   }
 }
@@ -684,6 +687,7 @@ function montarParams() {
   p.set('ordem', $('#ordem').value);
   if ($('#nota-min').value) p.set('nota_min', $('#nota-min').value);
   if ($('#pessoas').value) p.set('pessoas', $('#pessoas').value);
+  if ($('#arte').value) p.set('arte', $('#arte').value);
   p.set('limite', '200');
   p.set('tipo_midia', 'imagem'); // vídeo tem aba própria
   FACETAS_DEF.forEach(([k]) => {
@@ -776,6 +780,7 @@ $('#q').addEventListener('input', () => {
 $('#ordem').onchange = () => carregarFotos();
 $('#nota-min').onchange = () => carregarFotos();
 $('#pessoas').onchange = () => carregarFotos();
+$('#arte').onchange = () => carregarFotos();
 $('#zoom').oninput = () => {
   const h = +$('#zoom').value;
   $('#grade').innerHTML = fotos.length
@@ -785,7 +790,7 @@ $('#zoom').oninput = () => {
 
 addEventListener('keydown', e => {
   if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); $('#q').focus(); }
-  if (e.key === 'Escape') { $('#visor').hidden = true; editando = false; fecharVideo(); }
+  if (e.key === 'Escape') { $('#visor').hidden = true; editando = false; fecharVideo(); limparLink(); }
 });
 
 // selecao
@@ -824,6 +829,16 @@ $('#grade').addEventListener('click', e => {
 $('#bt-side').onclick = () => $('#side').classList.toggle('aberta');
 
 // visor
+// cada foto e vídeo tem endereço próprio (#foto/<id>, #video/<id>): dá para mandar o link e ele abre direto na mídia
+const limparLink = () => { if (location.hash) history.replaceState(null, '', location.pathname + location.search); };
+function abrirDoLink() {
+  const m = /^#(foto|video)\/([\w-]+)$/.exec(location.hash);
+  if (!m) return;
+  if (m[1] === 'foto') abrirVisor(m[2]);
+  else { document.querySelector('#nav button[data-aba="videos"]')?.click(); abrirVideo(m[2]); }
+}
+window.addEventListener('hashchange', abrirDoLink);
+
 async function abrirVisor(id) {
   try {
     const res = await api('/api/painel/fotos/' + id);
@@ -833,6 +848,7 @@ async function abrirVisor(id) {
     desenharVisor();
     $('#visor').hidden = false;
     $('#v-painel').scrollTop = 0;
+    history.replaceState(null, '', '#foto/' + id);
   } catch {}
 }
 
@@ -1022,7 +1038,7 @@ ${f.md5 ? 'md5 ' + esc(f.md5) : ''}</div></div>`;
   }
 }
 
-$('#v-x').onclick = () => { $('#visor').hidden = true; editando = false; };
+$('#v-x').onclick = () => { $('#visor').hidden = true; editando = false; limparLink(); };
 
 // editor
 function desenharEditor() {
@@ -1325,6 +1341,12 @@ async function carregarVideos() {
   if ($('#ordem-v').value && !q) p.set('ordem', $('#ordem-v').value);
   if ($('#tema-v').value) p.set('et_tema', $('#tema-v').value);
   if ($('#uso-v').value) p.set('et_uso', $('#uso-v').value);
+  if ($('#funcao-v').value) p.set('et_funcao', $('#funcao-v').value);
+  if (VOC.ETIQUETAS?.funcao && $('#funcao-v').hidden) {
+    $('#funcao-v').hidden = false;
+    $('#funcao-v').innerHTML = '<option value="">B-roll, fala...</option>' + VOC.ETIQUETAS.funcao.map(t => `<option>${esc(t)}</option>`).join('');
+    $('#funcao-v').onchange = () => carregarVideos();
+  }
   if ($('#orientacao-v').value) p.set('orientacao', $('#orientacao-v').value);
   $('#orientacao-v').onchange = $('#nota-min-v').onchange = $('#pessoas-v').onchange = () => carregarVideos();
   if (local) p.set('local', local);
@@ -1395,6 +1417,7 @@ async function abrirVideo(id, ini = 0) {
   $('#vv-nome').textContent = videoVisor.titulo || '';
   desenharVideo();
   $('#visor-v').hidden = false;
+  history.replaceState(null, '', '#video/' + id);
 }
 
 function fecharVideo() {
@@ -1402,6 +1425,7 @@ function fecharVideo() {
   $('#vv-video').pause();
   $('#vv-video').removeAttribute('src');
   $('#visor-v').hidden = true;
+  limparLink();
 }
 $('#vv-x').onclick = fecharVideo;
 

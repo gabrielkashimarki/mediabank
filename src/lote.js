@@ -6,8 +6,8 @@ const sharp = require('sharp');
 const { DESTINOS } = require('./vocabulario');
 const { exigirEscopo } = require('./chaves');
 const { medir, avaliar, LIMITES } = require('./tecnica');
-const { registrar, vocabularioDe, VOCABULARIOS } = require('./clientes');
-const { analiseDe, validarCenas } = require('./video');
+const { registrar, vocabularioDe, VOCABULARIOS, PADRAO } = require('./clientes');
+const { analiseDe, validarCenas, montarGrade, POR_GRADE } = require('./video');
 const { tagsDoVideo } = require('./tags');
 
 // cena reprovada no portão de vídeo: tremido acima disto (deslocamento médio entre quadros, em px a 160 px de largura).
@@ -34,6 +34,33 @@ function criarLote({ db, dirDados }) {
   // Classificação de vídeo feita fora do servidor (o Claude da assinatura, ou uma classificação já pronta):
   // mesmo JSON que a IA de vídeo devolve ({campos do vídeo, cenas: [{n, descricao, qualidade}]}) e a mesma validação.
   const cenasOk = db.prepare("SELECT id, ordem, ini, fim FROM cenas WHERE asset_id = ? AND st_tecnica = 'ok' ORDER BY ordem");
+  // Fila da assinatura: vídeos processados que esperam classificação, com as cenas (cada grade tem até 16 quadros numerados)
+  r.get('/videos/ia-pendentes', (req, res) => {
+    const limite = Math.min(Math.max(Math.trunc(Number(req.query.limite)) || 20, 1), 200);
+    const cliente = typeof req.query.cliente === 'string' ? req.query.cliente : null;
+    const vs = db.prepare(`SELECT a.id, a.cliente_id, a.duracao, a.orientacao, a.transcricao, p.caminho AS pasta FROM assets a LEFT JOIN pastas p ON p.id = a.pasta_id
+      WHERE a.tipo_midia = 'video' AND a.st_video = 'ok' AND a.st_tecnica = 'ok' AND a.st_ia = 'pendente' AND (? IS NULL OR a.cliente_id = ?)
+      ORDER BY a.data_foto DESC, a.id LIMIT ?`).all(cliente, cliente, limite);
+    res.json(vs.map(v => {
+      const cenas = cenasOk.all(v.id);
+      return { ...v, transcricao: v.transcricao ? v.transcricao.slice(0, 1500) : null, cenas: cenas.length,
+        grades: Array.from({ length: Math.ceil(cenas.length / POR_GRADE) }, (_, i) => `/api/lote/videos/${v.id}/grade/${i}.jpg`) };
+    }));
+  });
+  r.get('/videos/:id/grade/:parte', async (req, res, next) => {
+    try {
+      const parte = Number.parseInt(req.params.parte, 10);
+      const cenas = cenasOk.all(req.params.id).slice(parte * POR_GRADE, (parte + 1) * POR_GRADE);
+      if (!cenas.length) return res.status(404).end();
+      res.type('jpg').send(await montarGrade(cenas.map(c => path.join(dirDados, 'midia', 'cena', `${c.id}.jpg`))));
+    } catch (e) { next(e); }
+  });
+  // as mesmas instruções que a IA paga recebe, com N no lugar do número de quadros
+  r.get('/videos/instrucoes', (req, res) => {
+    const cliente = typeof req.query.cliente === 'string' ? req.query.cliente : PADRAO;
+    res.type('text').send(analiseDe(cliente).prompt('N', null));
+  });
+
   r.get('/videos/por-drive', (req, res) => {
     const umPorDrive = db.prepare("SELECT id, drive_id, cliente_id, duracao, st_video, st_ia FROM assets WHERE drive_id = ? AND tipo_midia = 'video'");
     const ids = String(req.query.ids || '').split(',').filter(Boolean).slice(0, 500);

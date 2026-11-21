@@ -80,14 +80,18 @@ const chamarGrade = (cliente, modelo, jpeg, texto) => cliente.chat(modelo, [{
 }], OPCOES_CHAT);
 
 // Cliente de fotos (PADRAO): os campos de foto valem para o vídeo inteiro. Cliente com ANALISE_VIDEO no vocabulário usa a dele.
-const { USOS_VIDEO } = require('./vocabulario');
+const { USOS_VIDEO, FUNCOES_VIDEO } = require('./vocabulario');
 const CAMPO_USO = `- uso: para que o vídeo foi feito, um de ${USOS_VIDEO.map(u => `"${u}"`).join(', ')} (TV e telão = cardápio, preços, avisos ou vídeo em loop para a televisão ou o telão do espaço, quase sempre horizontal e com texto; Rede social = peça vertical de reels ou stories; Anúncio e institucional = peça editada horizontal para site, YouTube ou apresentação; Captação (bruto) = material sem edição, câmera rodando)`;
+const CAMPO_FUNCAO = `- funcao: o papel do vídeo na montagem, um de ${FUNCOES_VIDEO.map(u => `"${u}"`).join(', ')} (B-roll = imagem de apoio do lugar, da comida ou do clima, sem ninguém falando para a câmera; Insert = detalhe curto; Abertura = plano que situa o lugar; Fala para câmera = alguém falando olhando para a câmera ou entrevista; Registro de convidados = pessoas posando ou cumprimentando; Bastidor = equipe trabalhando, montagem; Editado = peça pronta com cortes, texto ou grafismo)`;
 const ANALISE_PADRAO = {
-  prompt: (n, transcricao) => `${montarPromptVideo(n, transcricao)}\n${CAMPO_USO}`,
+  prompt: (n, transcricao) => `${montarPromptVideo(n, transcricao)}\n${CAMPO_USO}\n${CAMPO_FUNCAO}`,
   // uso fora da lista não derruba o vídeo: só não vira etiqueta
   validar: r => {
     const v = validarAnalise(r);
-    if (v.ok && USOS_VIDEO.includes(r.uso)) v.campos.etiquetas = { uso: r.uso };
+    if (v.ok) {
+      const et = { ...(USOS_VIDEO.includes(r.uso) && { uso: r.uso }), ...(FUNCOES_VIDEO.includes(r.funcao) && { funcao: r.funcao }) };
+      if (Object.keys(et).length) v.campos.etiquetas = et;
+    }
     return v;
   },
 };
@@ -117,8 +121,10 @@ async function emParalelo(itens, n, fn) {
 }
 
 async function etapaIaVideo(db, { dirDados, cliente, modelo, limite = Infinity, concorrencia = 4 }) {
-  const fila = db.prepare(`SELECT id, cliente_id, etiquetas, transcricao FROM assets WHERE tipo_midia = 'video' AND st_video = 'ok' AND st_tecnica = 'ok' AND st_ia = 'pendente' LIMIT ?`)
-    .all(Number.isFinite(limite) ? limite : -1);
+  // IA_VIDEO_FORA=exemplo: estes clientes são classificados pela assinatura do Claude (/api/lote), não pela IA paga
+  const fora = JSON.stringify((process.env.IA_VIDEO_FORA || '').split(',').map(s => s.trim()).filter(Boolean));
+  const fila = db.prepare(`SELECT id, cliente_id, etiquetas, transcricao FROM assets WHERE tipo_midia = 'video' AND st_video = 'ok' AND st_tecnica = 'ok' AND st_ia = 'pendente'
+    AND cliente_id NOT IN (SELECT value FROM json_each(?)) LIMIT ?`).all(fora, Number.isFinite(limite) ? limite : -1);
   const cenasDe = db.prepare("SELECT id FROM cenas WHERE asset_id = ? AND st_tecnica = 'ok' ORDER BY ordem");
   const updCena = db.prepare('UPDATE cenas SET descricao = @descricao, qualidade = @qualidade, nota_rubrica = @nota_rubrica, tags = @tags WHERE id = @id');
   let ok = 0, erro = 0;

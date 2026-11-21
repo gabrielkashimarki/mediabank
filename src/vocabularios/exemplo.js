@@ -48,6 +48,8 @@ const GASTRONOMIA = ['Drinks e coquetéis', 'Vinhos e espumantes', 'Café e bebi
 
 // para que o vídeo foi feito (filtro da aba Vídeos; mora em etiquetas.uso)
 const USOS_VIDEO = ['TV e telão', 'Rede social', 'Anúncio e institucional', 'Captação (bruto)'];
+// o papel do take na montagem (Fala para câmera e Editado não servem de B-roll; Abertura = plano que situa o lugar)
+const FUNCOES_VIDEO = ['B-roll', 'Insert', 'Abertura', 'Fala para câmera', 'Registro de convidados', 'Bastidor', 'Editado'];
 
 const DESTINOS = ['prop', 'social', 'site'];
 const TIERS = ['hero', 'social', 'arquivo', 'variacao', 'descartar'];
@@ -89,8 +91,8 @@ module.exports = {
   id: 'exemplo',
   nome: 'Casa Exemplo',
   contexto: 'restaurante e espaço de eventos',
-  USOS_VIDEO,
-  ETIQUETAS: { uso: USOS_VIDEO },
+  USOS_VIDEO, FUNCOES_VIDEO,
+  ETIQUETAS: { uso: USOS_VIDEO, funcao: FUNCOES_VIDEO },
   EXPOSICAO, MCP,
   GASTRONOMIA,
   LOCAIS, VISTA_AEREA, ESPACOS, TIPOS_EVENTO, LISTAS, DESTINOS, TIERS, AUTORIZACAO_USO,

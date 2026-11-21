@@ -19,7 +19,10 @@ function montarOnde(filtros, sem) {
 
   if (externo) onde.push(externo === 'acervo' ? EXPOSICAO.acervo : EXPOSICAO.externa);
   if (filtros.tipo_midia) em('a.tipo_midia', lista(filtros.tipo_midia));
-  if (lista(filtros.orientacao).length) em('a.orientacao', lista(filtros.orientacao)); // vídeo: horizontal, vertical, quadrado
+  if (lista(filtros.orientacao).length) em('a.orientacao', lista(filtros.orientacao));
+  // arte gráfica: post, flyer, cardápio com texto ou grafismo sobre a imagem (tem_texto da IA)
+  if (filtros.arte === 'so') onde.push('a.tem_texto = 1');
+  if (filtros.arte === 'sem') onde.push('coalesce(a.tem_texto, 0) = 0'); // vídeo: horizontal, vertical, quadrado
   // campos do vocabulário do cliente que moram em etiquetas: ?et_tema=intestino&et_tema=dor
   for (const [k, v] of Object.entries(filtros)) {
     const campo = /^et_([a-z_]{1,30})$/.exec(k)?.[1];

@@ -69,6 +69,14 @@ test('hero vem do percentil do score >= 90; tier escolhido pela equipe não muda
   assert.equal(ler('f4').tier, 'arquivo');
 });
 
+test('arte gráfica (texto sobre a imagem) nunca vira hero', () => {
+  const { db, add, ler } = montar();
+  for (let i = 0; i < 5; i++) add('f' + i, { nota_estetica: i + 5, nota_rubrica: i + 5 }, i);
+  db.prepare("UPDATE assets SET tem_texto = 1 WHERE id = 'f4'").run();
+  recalcular(db);
+  assert.notEqual(ler('f4').tier, 'hero');
+});
+
 test('moodboard entra como sinal quando há referência do destino', () => {
   const { db, add } = montar();
   add('perto', { nota_estetica: 5, nota_rubrica: 5 }, 0);

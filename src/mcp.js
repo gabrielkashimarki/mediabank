@@ -8,7 +8,7 @@ const { acervo, vocabularioDe } = require('./clientes');
 const { buscar } = require('./busca');
 const { exigirEscopo } = require('./chaves');
 const { enviarOriginal } = require('./painel');
-const { ESPACOS, TIPOS_EVENTO, GASTRONOMIA, LISTAS, USOS_VIDEO } = require('./vocabulario');
+const { ESPACOS, TIPOS_EVENTO, GASTRONOMIA, LISTAS, USOS_VIDEO, FUNCOES_VIDEO } = require('./vocabulario');
 const { buscarVideos } = require('./busca_video');
 const { FORMATOS_TRECHO } = require('./rotas_video');
 const guias = require('./rotas_guias');
@@ -53,6 +53,7 @@ const ferramentas = cliente => [
         espaco: { type: 'string', enum: ESPACOS },
         tipo_evento: { type: 'string', enum: Object.keys(TIPOS_EVENTO) },
         uso: { type: 'string', enum: USOS_VIDEO, description: 'Para que o vídeo foi feito (TV e telão, rede social...).' },
+        funcao: { type: 'string', enum: FUNCOES_VIDEO, description: 'Papel na montagem; para B-roll use B-roll, Insert ou Abertura.' },
         orientacao: { type: 'string', enum: ['horizontal', 'vertical'] },
         tags: { type: 'array', items: { type: 'string' }, description: 'Só o que tem todas estas tags (minúsculas, ex.: ["noite", "taça"]).' },
         limite: { type: 'integer', minimum: 1, maximum: 10, description: 'Quantos vídeos (padrão 5).' },
@@ -148,7 +149,7 @@ function criarMcp({ db, dirDados, embedQuery, embedQuadroQuery, drive }) {
     if (nome === 'buscar_videos') {
       const limite = Math.min(Math.max(Math.trunc(Number(args.limite)) || 5, 1), 10);
       const videos = await buscarVideos(db, { q: args.consulta, limite, cliente, externo: 'acervo', espaco: args.espaco, tipo_evento: args.tipo_evento,
-        et_uso: args.uso, orientacao: args.orientacao, tag: args.tags },
+        et_uso: args.uso, et_funcao: args.funcao, orientacao: args.orientacao, tag: args.tags },
         { embedQuery, embedQuadroQuery });
       if (!videos.length) return [{ type: 'text', text: 'Nenhum vídeo encontrado. Tente outra consulta ou tire filtros.' }];
       return [

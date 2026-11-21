@@ -75,7 +75,27 @@ pessoas (painel), para agentes (MCP) e para outros sistemas (API v1, API v2 e o 
 - **Vídeos**: a aba Vídeos usa a mesma lateral da Biblioteca (local, espaço, evento, assunto, luz, plano, tags) e tem ainda
   **Uso** (TV e telão, rede social, anúncio e institucional, captação), **Formato** (horizontal ou vertical), nota mínima e pessoas.
   O uso vem da IA de vídeo e mora em `etiquetas.uso`.
-- Na API v2 e no MCP: `tag` (pode repetir), `et_uso` e `orientacao`.
+- **Função do vídeo**: B-roll, Insert, Abertura, Fala para câmera, Registro de convidados, Bastidor ou Editado, preenchida pela IA
+  de vídeo (`etiquetas.funcao`). Serve para achar B-roll sem trazer gente falando para a câmera. Filtro na aba Vídeos, `funcao` na
+  v2 e no MCP.
+- **Artes gráficas**: posts, flyers e cardápios com texto ou grafismo sobre a imagem (`tem_texto` da IA). A Biblioteca filtra
+  "Só fotos" ou "Só artes gráficas", e arte gráfica nunca vira hero na curadoria.
+- **Link próprio**: ao abrir uma foto ou um vídeo, a URL vira `#foto/<id>` ou `#video/<id>`; colar o link abre direto na mídia.
+- Na API v2 e no MCP: `tag` (pode repetir), `et_uso`, `et_funcao` e `orientacao`.
+
+## Classificar vídeo pela assinatura do Claude (sem IA paga)
+
+Com `IA_VIDEO_FORA=<cliente>` no servidor, a IA paga deixa de classificar os vídeos desse cliente. Eles ficam na fila da
+assinatura:
+
+1. `node scripts/classificar-pela-assinatura.js baixar <pasta> --limite 40 --cliente <slug>` grava as instruções (as mesmas
+   da IA, com o vocabulário do cliente), a lista de vídeos e as grades de quadros numerados de cada um.
+2. O Claude (ou subagentes dele) olha as grades e escreve um JSON por vídeo, no formato das instruções.
+3. `node scripts/classificar-pela-assinatura.js enviar <arquivo.json>` manda para `/api/lote/videos/:id/analise`; o servidor
+   valida contra o vocabulário e grava como se a IA tivesse respondido.
+
+Dá para agendar a rodada (por exemplo, uma tarefa do Claude a cada 4 horas) e deixar o trabalhador do Mac processando a fila em
+paralelo.
 
 ## Painel
 

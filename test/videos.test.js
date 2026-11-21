@@ -469,3 +469,22 @@ test('tags por take: a análise grava as tags de cada cena, o vídeo fica com as
   const vs = await buscarVideos(db, { cliente: 'exemplo', externo: 'acervo', tag: 'drone' });
   assert.deepEqual(vs.map(v => v.cenas.map(c => c.descricao)), [['drone sobre o deck']]);
 });
+
+test('fila da assinatura: lista os processados sem IA, monta a grade e manda as instruções; IA_VIDEO_FORA tira o cliente da IA paga', async (t) => {
+  const { db, dir, id } = await videoProcessado(2);
+  const chave = criarChave(db, 'lote');
+  const srv = criarApp({ db, dirDados: dir }).listen(0);
+  t.after(() => srv.close());
+  const base = `http://127.0.0.1:${srv.address().port}/api/lote`;
+  const get = rota => fetch(base + rota, { headers: { 'X-API-Key': chave } });
+  const [v] = await (await get('/videos/ia-pendentes?cliente=exemplo')).json();
+  assert.deepEqual([v.id, v.cenas, v.grades.length], [id, 2, 1]);
+  const grade = await get(v.grades[0].replace('/api/lote', ''));
+  assert.equal(grade.headers.get('content-type'), 'image/jpeg');
+  assert.match(await (await get('/videos/instrucoes?cliente=exemplo')).text(), /GRADE com N quadros[\s\S]*- uso:/);
+  process.env.IA_VIDEO_FORA = 'exemplo';
+  t.after(() => { delete process.env.IA_VIDEO_FORA; });
+  let chamou = false;
+  const r = await video_.etapaIaVideo(db, { dirDados: dir, cliente: { chat: async () => { chamou = true; return '{}'; } }, modelo: 'x' });
+  assert.deepEqual([r.ok, r.erro, chamou], [0, 0, false]);
+});

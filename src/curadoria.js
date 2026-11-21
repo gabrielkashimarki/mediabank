@@ -100,10 +100,10 @@ function recalcular(db) {
     VALUES (@asset_id, @destino, @elegivel, @moodboard, @score, @percentil)
     ON CONFLICT (asset_id, destino) DO UPDATE SET elegivel = excluded.elegivel, moodboard = excluded.moodboard,
       score = excluded.score, percentil = excluded.percentil`);
-  // hero: percentil do score >= 90 no destino, só as 100 de maior score de cada destino
+  // hero: percentil do score >= 90 no destino, só as 100 de maior score de cada destino; arte gráfica (post, flyer) não é hero
   const hero = db.prepare(`SELECT p.asset_id FROM pontuacao p JOIN assets a ON a.id = p.asset_id
     WHERE p.destino = ? AND p.elegivel = 1 AND p.percentil >= ?
-    AND a.tier != 'descartar' ORDER BY p.score DESC LIMIT ?`);
+    AND a.tier != 'descartar' AND coalesce(a.tem_texto, 0) = 0 ORDER BY p.score DESC LIMIT ?`);
   // tier ou destinos editados à mão (tier_fixo) ficam como a equipe deixou; descarte manual não reverte
   const upAsset = db.prepare(`UPDATE assets SET rajada_id = @rajada_id, nota_final = @nota_final,
     destinos = CASE WHEN tier_fixo = 1 THEN destinos ELSE @destinos END,
