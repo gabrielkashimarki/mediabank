@@ -20,6 +20,7 @@ function formatar(a) {
     id: a.id, titulo: a.titulo, descricao: a.descricao, legenda: a.legenda, alt: a.alt,
     local: a.local, espaco: a.espaco, tipo_evento: a.tipo_evento, tipo: a.tipo,
     perguntas_que_responde: JSON.parse(a.perguntas_que_responde),
+    tags: JSON.parse(a.tags || '[]'),
     destinos: JSON.parse(a.destinos), tier: a.tier, nota: a.nota_final,
     largura: a.largura, altura: a.altura,
     thumb_url: `/api/v1/midia/thumb/${a.id}.jpg`,

@@ -8,7 +8,7 @@ const { acervo, vocabularioDe } = require('./clientes');
 const { buscar } = require('./busca');
 const { exigirEscopo } = require('./chaves');
 const { enviarOriginal } = require('./painel');
-const { ESPACOS, TIPOS_EVENTO, GASTRONOMIA, LISTAS } = require('./vocabulario');
+const { ESPACOS, TIPOS_EVENTO, GASTRONOMIA, LISTAS, USOS_VIDEO } = require('./vocabulario');
 const { buscarVideos } = require('./busca_video');
 const { FORMATOS_TRECHO } = require('./rotas_video');
 const guias = require('./rotas_guias');
@@ -29,6 +29,7 @@ const ferramentas = cliente => [
         tipo_evento: { type: 'string', enum: Object.keys(TIPOS_EVENTO) },
         tipo: { type: 'string', enum: LISTAS.tipo, description: 'Assunto principal da foto.' },
         gastronomia: { type: 'string', enum: GASTRONOMIA },
+        tags: { type: 'array', items: { type: 'string' }, description: 'Só o que tem todas estas tags (minúsculas, ex.: ["noite", "taça"]).' },
         nota_min: { type: 'number', description: 'Nota mínima de qualidade da IA, de 1 a 10.' },
         limite: { type: 'integer', minimum: 1, maximum: 30, description: 'Quantas fotos (padrão 12).' },
       },
@@ -51,6 +52,9 @@ const ferramentas = cliente => [
         consulta: { type: 'string', description: 'O que o trecho deve mostrar, em português.' },
         espaco: { type: 'string', enum: ESPACOS },
         tipo_evento: { type: 'string', enum: Object.keys(TIPOS_EVENTO) },
+        uso: { type: 'string', enum: USOS_VIDEO, description: 'Para que o vídeo foi feito (TV e telão, rede social...).' },
+        orientacao: { type: 'string', enum: ['horizontal', 'vertical'] },
+        tags: { type: 'array', items: { type: 'string' }, description: 'Só o que tem todas estas tags (minúsculas, ex.: ["noite", "taça"]).' },
         limite: { type: 'integer', minimum: 1, maximum: 10, description: 'Quantos vídeos (padrão 5).' },
       },
     },
@@ -115,7 +119,7 @@ function criarMcp({ db, dirDados, embedQuery, embedQuadroQuery, drive }) {
   async function chamar(nome, args, base, cliente) {
     const resumo = a => ({
       id: a.id, titulo: a.titulo, descricao: a.descricao, espaco: a.espaco, tipo_evento: a.tipo_evento,
-      tipo: a.tipo, gastronomia: a.gastronomia, nota: a.nota_rubrica, aprovacao: a.aprovacao, tem_pessoa: a.tem_pessoa, largura: a.largura, altura: a.altura,
+      tipo: a.tipo, gastronomia: a.gastronomia, tags: JSON.parse(a.tags || '[]'), nota: a.nota_rubrica, aprovacao: a.aprovacao, tem_pessoa: a.tem_pessoa, largura: a.largura, altura: a.altura,
       original_url: a.drive_id ? `${base}/original/${a.id}` : null,
     });
     if (nome === 'buscar_fotos') {
@@ -124,7 +128,7 @@ function criarMcp({ db, dirDados, embedQuery, embedQuadroQuery, drive }) {
       const limite = Math.min(Math.max(Math.trunc(Number(args.limite)) || 12, 1), 30);
       const fotos = await buscar(db, {
         q, limite, externo: 'acervo', cliente, tipo_midia: 'imagem', espaco: args.espaco, tipo_evento: args.tipo_evento,
-        tipo: args.tipo, gastronomia: args.gastronomia, nota_min: args.nota_min, pessoas: args.sem_pessoas === false ? undefined : 'sem',
+        tipo: args.tipo, gastronomia: args.gastronomia, tag: args.tags, nota_min: args.nota_min, pessoas: args.sem_pessoas === false ? undefined : 'sem',
       }, { embedQuery });
       if (!fotos.length) return [{ type: 'text', text: 'Nenhuma foto encontrada. Tente outra consulta ou tire filtros.' }];
       return [
@@ -139,11 +143,12 @@ function criarMcp({ db, dirDados, embedQuery, embedQuadroQuery, drive }) {
     }
     const umVideo = id => db.prepare(`SELECT a.* FROM assets a WHERE a.id = ? AND a.tipo_midia = 'video' AND a.st_video = 'ok' AND ${acervo(cliente)}`).get(id);
     const cenaResumo = c => ({ id: c.id, ini: c.ini, fim: c.fim, descricao: c.descricao, nota_take: c.nota_take, ...(c.transcricao && { fala: c.transcricao }) });
-    const resumoVideo = a => ({ id: a.id, titulo: a.titulo, descricao: a.descricao, espaco: a.espaco, tipo_evento: a.tipo_evento,
+    const resumoVideo = a => ({ id: a.id, titulo: a.titulo, descricao: a.descricao, tags: JSON.parse(a.tags || '[]'), espaco: a.espaco, tipo_evento: a.tipo_evento,
       duracao: a.duracao, largura: a.largura, altura: a.altura, aprovacao: a.aprovacao, drive_url: a.drive_id ? `https://drive.google.com/file/d/${a.drive_id}/view` : null });
     if (nome === 'buscar_videos') {
       const limite = Math.min(Math.max(Math.trunc(Number(args.limite)) || 5, 1), 10);
-      const videos = await buscarVideos(db, { q: args.consulta, limite, cliente, externo: 'acervo', espaco: args.espaco, tipo_evento: args.tipo_evento },
+      const videos = await buscarVideos(db, { q: args.consulta, limite, cliente, externo: 'acervo', espaco: args.espaco, tipo_evento: args.tipo_evento,
+        et_uso: args.uso, orientacao: args.orientacao, tag: args.tags },
         { embedQuery, embedQuadroQuery });
       if (!videos.length) return [{ type: 'text', text: 'Nenhum vídeo encontrado. Tente outra consulta ou tire filtros.' }];
       return [

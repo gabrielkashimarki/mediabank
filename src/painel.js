@@ -11,7 +11,7 @@ const { rotasVideo } = require('./rotas_video');
 const { rotasPecas } = require('./rotas_pecas');
 const { rotasGuias } = require('./rotas_guias');
 
-const JSON_COLS = ['fornecedores', 'decoracao', 'indesejados', 'perguntas_que_responde', 'destinos_sugeridos', 'destinos', 'qualidade', 'problemas'];
+const JSON_COLS = ['tags', 'fornecedores', 'decoracao', 'indesejados', 'perguntas_que_responde', 'destinos_sugeridos', 'destinos', 'qualidade', 'problemas'];
 const BOOL_COLS = ['tem_pessoa', 'tem_crianca', 'rostos_identificaveis', 'marca_terceiro', 'tem_texto', 'espaco_para_texto', 'exposta'];
 
 // linha do banco para o painel: JSON aberto, 0/1 como boolean, sem caminho interno do Mac

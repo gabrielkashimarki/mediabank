@@ -77,11 +77,21 @@ const chamarGrade = (cliente, modelo, jpeg, texto) => cliente.chat(modelo, [{
 }], OPCOES_CHAT);
 
 // Cliente de fotos (PADRAO): os campos de foto valem para o vídeo inteiro. Cliente com ANALISE_VIDEO no vocabulário usa a dele.
-const ANALISE_OPERA = { prompt: (n, transcricao) => montarPromptVideo(n, transcricao), validar: validarAnalise };
-const analiseDe = clienteId => vocabularioDe(clienteId).ANALISE_VIDEO || ANALISE_OPERA;
+const { USOS_VIDEO } = require('./vocabulario');
+const CAMPO_USO = `- uso: para que o vídeo foi feito, um de ${USOS_VIDEO.map(u => `"${u}"`).join(', ')} (TV e telão = cardápio, preços, avisos ou vídeo em loop para a televisão ou o telão do espaço, quase sempre horizontal e com texto; Rede social = peça vertical de reels ou stories; Anúncio e institucional = peça editada horizontal para site, YouTube ou apresentação; Captação (bruto) = material sem edição, câmera rodando)`;
+const ANALISE_PADRAO = {
+  prompt: (n, transcricao) => `${montarPromptVideo(n, transcricao)}\n${CAMPO_USO}`,
+  // uso fora da lista não derruba o vídeo: só não vira etiqueta
+  validar: r => {
+    const v = validarAnalise(r);
+    if (v.ok && USOS_VIDEO.includes(r.uso)) v.campos.etiquetas = { uso: r.uso };
+    return v;
+  },
+};
+const analiseDe = clienteId => vocabularioDe(clienteId).ANALISE_VIDEO || ANALISE_PADRAO;
 
 // cenas: [{id, arquivo}] na ordem (só as que passaram no portão técnico)
-async function analisarVideo(cenas, { cliente, modelo, transcricao = null, analise = ANALISE_OPERA }) {
+async function analisarVideo(cenas, { cliente, modelo, transcricao = null, analise = ANALISE_PADRAO }) {
   const partes = [];
   for (let i = 0; i < cenas.length; i += POR_GRADE) partes.push(cenas.slice(i, i + POR_GRADE));
   const primeira = partes[0];
@@ -131,10 +141,10 @@ async function etapaIaVideo(db, { dirDados, cliente, modelo, limite = Infinity, 
 
 // texto da cena: o que acontece nela, a fala e o contexto do vídeo (título, espaço, evento da pasta)
 function textoDaCena(c, v) {
-  return [c.descricao, c.transcricao, v.titulo, v.espaco, v.tipo_evento, v.evento_pasta, v.caminho_pasta].filter(Boolean).join('\n');
+  return [c.descricao, c.transcricao, v.titulo, JSON.parse(v.tags || '[]').join(', '), v.espaco, v.tipo_evento, v.evento_pasta, v.caminho_pasta].filter(Boolean).join('\n');
 }
 function textoDoVideo(v, cenas) {
-  return [v.titulo, v.descricao, v.legenda, v.espaco, v.local, v.tipo_evento, v.evento_pasta, v.caminho_pasta,
+  return [v.titulo, v.descricao, JSON.parse(v.tags || '[]').join(', '), v.legenda, v.espaco, v.local, v.tipo_evento, v.evento_pasta, v.caminho_pasta,
     ...JSON.parse(v.perguntas_que_responde || '[]'), ...cenas.map(c => c.descricao), v.transcricao].filter(Boolean).join('\n').slice(0, 24000);
 }
 

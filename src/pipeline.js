@@ -46,7 +46,7 @@ async function etapaIa(db, { dirDados, cliente, modelo, limite = Infinity, conco
 // evento e caminho da pasta no Drive entram para a busca achar o nome do casal ou da empresa do evento
 function textoParaEmbedding(a) {
   return [a.titulo, a.descricao, a.legenda, a.espaco, a.local, a.tipo_evento, a.evento_pasta, a.caminho_pasta,
-    ...JSON.parse(a.perguntas_que_responde || '[]')].filter(Boolean).join('\n');
+    ...JSON.parse(a.perguntas_que_responde || '[]'), JSON.parse(a.tags || '[]').join(', ')].filter(Boolean).join('\n');
 }
 
 async function etapaEmbedding(db, { cliente, modelo, lote = 50 }) {

@@ -393,6 +393,7 @@ const COLUNAS_NOVAS = {
     cliente_id: "TEXT NOT NULL DEFAULT 'exemplo'",
     tipo_midia: "TEXT NOT NULL DEFAULT 'imagem'",
     etiquetas: "TEXT NOT NULL DEFAULT '{}'",
+    tags: "TEXT NOT NULL DEFAULT '[]'",
     aprovacao_motivo: 'TEXT',
     ...Object.fromEntries(['duracao REAL', 'fps REAL', 'codec TEXT', 'tem_audio INTEGER', 'orientacao TEXT', 'transcricao TEXT',
       'previa INTEGER', 'st_video TEXT', 'st_quadros TEXT', 'fonte TEXT', 'fonte_id TEXT', 'fonte_url TEXT', 'autor TEXT',

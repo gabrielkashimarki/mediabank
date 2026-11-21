@@ -1,3 +1,4 @@
+const { normalizarTags } = require('./tags');
 const { ESPACOS, TIPOS_EVENTO, LISTAS, DESTINOS, TIERS, AUTORIZACAO_USO, localDe } = require('./vocabulario');
 const { PADRAO, validar } = require('./clientes');
 
@@ -19,13 +20,14 @@ const EDITAVEIS = {
   destinos: v => (Array.isArray(v) && v.every(d => DESTINOS.includes(d)) ? JSON.stringify([...new Set(v)]) : undefined),
   tem_crianca: bool, tem_texto: bool, marca_terceiro: bool, rostos_identificaveis: bool,
   perguntas_que_responde: listaTexto, fornecedores: listaTexto,
+  tags: v => (Array.isArray(v) && v.every(t => typeof t === 'string') ? JSON.stringify(normalizarTags(v)) : undefined),
   capacidade_estimada: v => (v === null || (Number.isInteger(v) && v >= 0) ? v : undefined),
 };
 
 // mudar um destes numa foto aprovada, sem ser admin, derruba a aprovação
 const PROTECAO = ['tem_crianca', 'autorizacao_uso', 'tier', 'tem_texto', 'marca_terceiro', 'rostos_identificaveis'];
 // mudar um destes invalida o embedding de texto
-const REINDEXA = ['titulo', 'descricao', 'legenda', 'espaco', 'tipo_evento', 'perguntas_que_responde'];
+const REINDEXA = ['titulo', 'descricao', 'legenda', 'espaco', 'tipo_evento', 'perguntas_que_responde', 'tags'];
 
 function validarEdicao(campos) {
   const sets = {}, erros = [];

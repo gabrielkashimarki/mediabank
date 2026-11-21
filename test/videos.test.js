@@ -414,3 +414,37 @@ test('classificação feita fora (assinatura ou importação): por-drive lista a
   assert.deepEqual(a, { st_ia: 'ok', st_embedding: 'pendente', titulo: 'Drink no bar', tipo: 'Bar' });
   assert.deepEqual(db.prepare('SELECT descricao, nota_rubrica FROM cenas WHERE asset_id = ? ORDER BY ordem').all(id).map(c => c.descricao), ['bartender mexe o drink', null]);
 });
+
+test('uso do vídeo: a análise grava a etiqueta e a busca filtra por uso e por orientação', async (t) => {
+  const { db, dir, id } = await videoProcessado(1);
+  const chave = criarChave(db, 'lote');
+  const srv = criarApp({ db, dirDados: dir }).listen(0);
+  t.after(() => srv.close());
+  const q = { assunto: 7, enquadramento: 7, composicao: 7, luz: 7, limpeza: 7, momento: 7 };
+  const analise = { titulo: 'Cardápio na TV', descricao: 'x'.repeat(250), espaco: 'Bar', tipo: 'Gastronomia', luz_tipo: 'Noturna', luz_direcao: 'Frontal',
+    plano: 'Geral', altura_camera: 'Olho', composicao: 'Centralizada', ponto_vista: 'Frontal', profundidade: 'Total', posicao_assunto: 'Centro',
+    sazonal: 'Nenhum', tratamento: 'Natural', tem_crianca: false, qualidade: q, uso: 'TV e telão', cenas: [] };
+  const r = await fetch(`http://127.0.0.1:${srv.address().port}/api/lote/videos/${id}/analise`, { method: 'POST', headers: { 'X-API-Key': chave, 'Content-Type': 'application/json' }, body: JSON.stringify(analise) });
+  assert.equal(r.status, 200);
+  db.prepare("UPDATE assets SET orientacao = 'horizontal', tem_crianca = 0 WHERE id = ?").run(id);
+  const { buscarVideos } = require('../src/busca_video');
+  const achar = f => buscarVideos(db, { cliente: 'exemplo', externo: 'acervo', ...f }).then(vs => vs.map(v => v.id));
+  assert.deepEqual(await achar({ et_uso: 'TV e telão' }), [id]);
+  assert.deepEqual(await achar({ et_uso: 'Rede social' }), []);
+  assert.deepEqual(await achar({ orientacao: 'vertical' }), []);
+  assert.deepEqual(await achar({ orientacao: 'horizontal', et_uso: 'TV e telão' }), [id]);
+});
+
+test('tags: a IA grava normalizadas, a busca filtra por tag (E entre tags) e a faceta conta', async () => {
+  const { normalizarTags } = require('../src/tags');
+  assert.deepEqual(normalizarTags(['Taça', ' taça ', '#Noite', 'luz   quente', 3]), ['taça', 'noite', 'luz quente']);
+  const { db, id } = await videoProcessado(1);
+  db.prepare(`UPDATE assets SET tags = ?, tem_crianca = 0 WHERE id = ?`).run(JSON.stringify(['taça', 'noite']), id);
+  const { buscarVideos } = require('../src/busca_video');
+  const { facetas } = require('../src/busca');
+  const achar = f => buscarVideos(db, { cliente: 'exemplo', externo: 'acervo', ...f }).then(vs => vs.map(v => v.id));
+  assert.deepEqual(await achar({ tag: 'noite' }), [id]);
+  assert.deepEqual(await achar({ tag: ['noite', 'taça'] }), [id]);
+  assert.deepEqual(await achar({ tag: ['noite', 'deck'] }), []);
+  assert.deepEqual(facetas(db, { cliente: 'exemplo', tipo_midia: 'video', externo: false }).tag, { noite: 1, 'taça': 1 });
+});

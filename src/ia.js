@@ -1,3 +1,4 @@
+const { normalizarTags } = require('./tags');
 const { nome, contexto, ESPACOS, TIPOS_EVENTO, LISTAS, DESTINOS, GASTRONOMIA, localDe } = require('./vocabulario');
 
 const lista = xs => xs.map(x => `"${x}"`).join(', ');
@@ -23,6 +24,7 @@ ${listas}
 - tem_texto: true/false, só texto, arte gráfica ou marca d'água SOBREPOSTOS à foto (edição, post de rede social); telão, placa, banner, cardápio ou letreiro que fazem parte da cena não contam (false)
 - indesejados: lista de problemas visíveis (lixo, fio, extintor, pessoa cortada, equipe de serviço...), [] se nenhum
 - capacidade_estimada: número de convidados que o espaço montado comporta, ou null
+- tags: 8 a 15 palavras-chave em português, minúsculas, 1 a 3 palavras cada, o que alguém digitaria para achar esta mídia: objetos, ação, clima, cores, e sinônimos comuns (ex.: "taça", "espumante", "champanhe", "brinde", "noite", "luz quente")
 - perguntas_que_responde: 2 a 5 perguntas de cliente que esta foto responde (ex.: "Como fica o deck à noite?")
 - espaco_para_texto: true/false, área limpa para colocar texto
 - decoracao: { "estilo": texto curto, "cores": até 5 cores, "flores": true/false, "iluminacao_cenica": true/false }
@@ -118,6 +120,7 @@ function validarAnalise(r) {
       indesejados: JSON.stringify(Array.isArray(r.indesejados) ? r.indesejados : []),
       capacidade_estimada: Number.isInteger(r.capacidade_estimada) ? r.capacidade_estimada : null,
       perguntas_que_responde: JSON.stringify(Array.isArray(r.perguntas_que_responde) ? r.perguntas_que_responde : []),
+      tags: JSON.stringify(normalizarTags(r.tags)),
       espaco_para_texto: b(r.espaco_para_texto),
       decoracao: JSON.stringify(r.decoracao && typeof r.decoracao === 'object' ? r.decoracao : {}),
       nota_rubrica,

@@ -5,7 +5,7 @@ const { espacosDoLocal, tiposComFilhos, TIPOS_EVENTO } = require('./vocabulario'
 const lista = v => (v == null || v === '' ? [] : [].concat(v).map(String));
 
 // facetas multivaloradas: dentro da faceta é OU, entre facetas é E
-const FACETAS = ['tier', 'tipo_evento', 'destino', 'tipo', 'gastronomia', 'luz_tipo', 'plano', 'uso'];
+const FACETAS = ['tier', 'tipo_evento', 'destino', 'tipo', 'gastronomia', 'luz_tipo', 'plano', 'uso', 'tag'];
 
 // monta o WHERE; `sem` deixa uma faceta de fora (contagem da própria faceta)
 // cliente: sem ele, vale o cliente PADRAO (quem chamava antes da spec multi-cliente); rota nova passa sempre
@@ -19,6 +19,7 @@ function montarOnde(filtros, sem) {
 
   if (externo) onde.push(externo === 'acervo' ? EXPOSICAO.acervo : EXPOSICAO.externa);
   if (filtros.tipo_midia) em('a.tipo_midia', lista(filtros.tipo_midia));
+  if (lista(filtros.orientacao).length) em('a.orientacao', lista(filtros.orientacao)); // vídeo: horizontal, vertical, quadrado
   // campos do vocabulário do cliente que moram em etiquetas: ?et_tema=intestino&et_tema=dor
   for (const [k, v] of Object.entries(filtros)) {
     const campo = /^et_([a-z_]{1,30})$/.exec(k)?.[1];
@@ -39,6 +40,8 @@ function montarOnde(filtros, sem) {
     onde.push(`EXISTS (SELECT 1 FROM json_each(a.destinos) WHERE value IN (${f('destino').map(() => '?').join(',')}))`);
     params.push(...f('destino'));
   }
+  // tags: entre tags é E (filtrar "noite" e "taça" traz o que tem as duas), como no Pixabay
+  for (const t of f('tag')) { onde.push('EXISTS (SELECT 1 FROM json_each(a.tags) WHERE value = ?)'); params.push(t.toLowerCase()); }
   const uso = f('uso');
   if (uso.length === 1) onde.push(uso[0] === 'liberada' ? `(${EXPOSICAO.externa})` : `NOT (${EXPOSICAO.externa})`);
   return { onde, params, exposta: EXPOSICAO.externa };
@@ -114,8 +117,9 @@ function facetas(db, filtros) {
   for (const fac of FACETAS) {
     const { onde, params, exposta } = montarOnde(filtros, fac);
     const expr = fac === 'uso' ? `CASE WHEN ${exposta} THEN 'liberada' ELSE 'interno' END` : `a.${fac}`;
-    const sql = fac === 'destino'
-      ? `SELECT d.value AS v, count(*) AS n FROM assets a, json_each(a.destinos) d ${where(onde)} GROUP BY d.value`
+    // tag: só as 40 mais comuns no recorte atual (a lista inteira não cabe na lateral)
+    const sql = fac === 'destino' || fac === 'tag'
+      ? `SELECT d.value AS v, count(*) AS n FROM assets a, json_each(a.${fac === 'tag' ? 'tags' : 'destinos'}) d ${where(onde)} GROUP BY d.value ORDER BY n DESC${fac === 'tag' ? ' LIMIT 40' : ''}`
       : `SELECT ${expr} AS v, count(*) AS n FROM assets a ${where(onde)} GROUP BY v`;
     r[fac] = Object.fromEntries(db.prepare(sql).all(...params).filter(l => l.v != null).map(l => [l.v, l.n]));
   }

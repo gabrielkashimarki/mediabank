@@ -54,6 +54,9 @@ svg{flex:none}
 .nav button[aria-current="true"]{background:var(--sunk);color:var(--ink);font-weight:500}
 .nav .n{margin-left:auto;color:var(--muted);font:11px var(--mono)}
 .facetas{overflow-y:auto;padding:8px 8px 24px;flex:1}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 2px}
+.tag-chip{border:1px solid var(--line);background:var(--sunk);color:var(--ink2);border-radius:999px;padding:3px 10px;font-size:12px;cursor:pointer}
+.tag-chip:hover{border-color:var(--ink2)}
 .fac{border-bottom:1px solid var(--line);padding-block:6px}
 .fac:last-child{border-bottom:0}
 .fac summary{list-style:none;display:flex;align-items:center;justify-content:space-between;padding:6px 8px;cursor:pointer;color:var(--muted);font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;border-radius:6px}
@@ -391,10 +394,15 @@ dialog .fechar{border:0;background:transparent;color:var(--muted);font-size:12px
     </section>
 
     <section id="aba-videos" class="main" style="flex:1" hidden>
+      <div class="espacos" id="espacos-v"></div>
       <div class="sub">
         <span class="mono" id="contagem-v" style="color:var(--muted);font-size:12px"></span>
         <div class="dir">
           <select id="tema-v" aria-label="Tema" hidden></select>
+          <select id="uso-v" aria-label="Para que o vídeo foi feito" hidden></select>
+          <select id="nota-min-v" aria-label="Nota mínima da IA"><option value="">Qualquer nota</option><option value="5">Nota 5+</option><option value="6">Nota 6+</option><option value="7">Nota 7+</option><option value="8">Nota 8+</option></select>
+          <select id="pessoas-v" aria-label="Pessoas no vídeo"><option value="">Com ou sem pessoas</option><option value="sem">Sem pessoas</option><option value="com">Com pessoas</option></select>
+          <select id="orientacao-v" aria-label="Formato"><option value="">Todos os formatos</option><option value="horizontal">Horizontal</option><option value="vertical">Vertical</option></select>
           <select id="ordem-v" aria-label="Ordenar vídeos"><option value="">Relevância</option><option value="take">Melhores takes</option></select>
           <label style="display:flex;align-items:center;gap:6px">Tamanho <input id="zoom-v" type="range" min="140" max="360" value="220"></label>
         </div>
@@ -480,6 +488,7 @@ const FACETAS_DEF = [
   ['luz_tipo', 'Luz'],
   ['plano', 'Plano'],
   ['uso', 'Uso'],
+  ['tag', 'Tags'],
 ];
 
 async function api(url, opts = {}) {
@@ -541,6 +550,16 @@ function montarRodape() {
   };
 }
 
+// tags da mídia como chips; clicar filtra a lista por aquela tag
+const chipsTags = tags => (tags && tags.length
+  ? `<div class="tags">${tags.map(t => `<button class="tag-chip" data-tag="${esc(t)}">${esc(t)}</button>`).join('')}</div>` : '');
+document.addEventListener('click', e => {
+  const b = e.target.closest('.tag-chip');
+  if (!b) return;
+  ativo.tag.add(b.dataset.tag);
+  recarregar();
+});
+
 // facetas e valores: montados do vocabulario
 function valoresFaceta(k) {
   if (k === 'tier') return VOC.TIERS;
@@ -551,6 +570,8 @@ function valoresFaceta(k) {
   if (k === 'luz_tipo') return VOC.LISTAS.luz_tipo;
   if (k === 'plano') return VOC.LISTAS.plano;
   if (k === 'uso') return ['liberada', 'interno'];
+  // tags: as mais comuns do recorte atual (o servidor manda até 40) e as já marcadas
+  if (k === 'tag') return [...new Set([...ativo.tag, ...Object.keys(facetasData.tag || {})])];
   return [];
 }
 
@@ -585,17 +606,21 @@ function montarEspacos() {
   subsHtml += `<span class="div"></span><button class="esp-bt" data-e="${esc(VISTA_AEREA)}" aria-pressed="${espaco === VISTA_AEREA}">${esc(VISTA_AEREA)}<span class="n">${fc[VISTA_AEREA] || 0}</span></button>`;
   subsHtml += '</div>';
 
-  $('#espacos').innerHTML = `<div class="locais">${locaisHtml}</div>${subsHtml}`;
+  $(abaAtual === 'videos' ? '#espacos-v' : '#espacos').innerHTML = `<div class="locais">${locaisHtml}</div>${subsHtml}`;
 }
 
-$('#espacos').addEventListener('click', e => {
+// a lateral (espaços e facetas) vale para a Biblioteca e para Vídeos
+const recarregar = () => (abaAtual === 'videos' ? carregarVideos() : carregarFotos());
+const aoEscolherEspaco = e => {
   const b = e.target.closest('button');
   if (!b) return;
   if ('l' in b.dataset) { local = b.dataset.l; espaco = ''; }
   else espaco = b.dataset.e;
   montarEspacos();
-  carregarFotos();
-});
+  recarregar();
+};
+$('#espacos').addEventListener('click', aoEscolherEspaco);
+$('#espacos-v').addEventListener('click', aoEscolherEspaco);
 
 $('#bt-filtros').onclick = () => {
   if (innerWidth <= 900) { $('#side').classList.add('aberta'); return; }
@@ -628,7 +653,7 @@ $('#facetas').addEventListener('change', e => {
   const { k, v } = e.target.dataset;
   if (!k) return;
   e.target.checked ? ativo[k].add(v) : ativo[k].delete(v);
-  carregarFotos();
+  recarregar();
 });
 
 function montarTokens() {
@@ -864,6 +889,7 @@ function desenharVisor() {
       <div class="linha"><span class="st"><span class="dot" style="background:${COR_TIER[f.tier] || 'var(--muted)'}"></span>${esc(NOME_TIER[f.tier] || f.tier)}</span>
         ${aprovTxt} ${expostaTxt}</div>
       <h2>${esc(f.titulo || '')}</h2>
+      ${chipsTags(f.tags)}
       ${acoesHtml}
     </div>
     <div class="bloco">
@@ -1087,6 +1113,7 @@ function desenharEditor() {
       <div class="ed-campo"><label>Evento</label><input data-campo="evento" value="${esc(f.evento || '')}" maxlength="200"></div>
       <div class="ed-campo"><label>Fotógrafo</label><input data-campo="fotografo" value="${esc(f.fotografo || '')}" maxlength="200"></div>
       <div class="ed-campo"><label>Descrição</label><textarea data-campo="descricao" maxlength="4000">${esc(f.descricao || '')}</textarea></div>
+      <div class="ed-campo"><label>Tags (separadas por vírgula)</label><textarea data-campo="tags">${esc((f.tags || []).join(', '))}</textarea></div>
       <div class="ed-campo"><label>Perguntas que responde (uma por linha)</label><textarea data-campo="perguntas_que_responde">${esc(pergs)}</textarea></div>
       <div class="acoes-v" style="margin-top:8px">
         <button class="ic pri" id="ed-salvar">Salvar</button>
@@ -1123,7 +1150,10 @@ function desenharEditor() {
     // textareas
     document.querySelectorAll('#v-painel textarea[data-campo]').forEach(ta => {
       const c = ta.dataset.campo;
-      if (c === 'perguntas_que_responde') {
+      if (c === 'tags') {
+        const val = ta.value.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+        if (JSON.stringify(val) !== JSON.stringify(f.tags || [])) campos.tags = val;
+      } else if (c === 'perguntas_que_responde') {
         const val = ta.value.split('\n').map(l => l.trim()).filter(Boolean);
         const old = f.perguntas_que_responde || [];
         if (JSON.stringify(val) !== JSON.stringify(old)) campos[c] = val;
@@ -1271,7 +1301,7 @@ $('#nav').addEventListener('click', e => {
     const el = document.getElementById('aba-' + a);
     if (el) el.hidden = a !== b.dataset.aba;
   });
-  $('#facetas').hidden = b.dataset.aba !== 'galeria';
+  $('#facetas').hidden = !['galeria', 'videos'].includes(b.dataset.aba);
   $('#side').classList.remove('aberta');
   if (b.dataset.aba === 'colecoes') carregarColecoes();
   if (b.dataset.aba === 'videos') carregarVideos();
@@ -1292,15 +1322,34 @@ async function carregarVideos() {
   if (q) p.set('q', q);
   if ($('#ordem-v').value && !q) p.set('ordem', $('#ordem-v').value);
   if ($('#tema-v').value) p.set('et_tema', $('#tema-v').value);
+  if ($('#uso-v').value) p.set('et_uso', $('#uso-v').value);
+  if ($('#orientacao-v').value) p.set('orientacao', $('#orientacao-v').value);
+  $('#orientacao-v').onchange = $('#nota-min-v').onchange = $('#pessoas-v').onchange = () => carregarVideos();
+  if (local) p.set('local', local);
+  if (espaco) p.set('espaco', espaco);
+  if ($('#nota-min-v').value) p.set('nota_min', $('#nota-min-v').value);
+  if ($('#pessoas-v').value) p.set('pessoas', $('#pessoas-v').value);
+  // facetas da lateral; em /midias o assunto (Espaço, Decoração...) vai como `assunto`, porque `tipo` é imagem ou vídeo
+  const pFac = new URLSearchParams(p);
+  pFac.delete('tipo'); pFac.delete('limite'); pFac.delete('q'); pFac.delete('ordem'); pFac.set('tipo_midia', 'video');
+  FACETAS_DEF.forEach(([k]) => { for (const v of ativo[k]) { p.append(k === 'tipo' ? 'assunto' : k, v); pFac.append(k, v); } });
+  if (VOC.ETIQUETAS?.uso && $('#uso-v').hidden) {
+    $('#uso-v').hidden = false;
+    $('#uso-v').innerHTML = '<option value="">TV, rede social...</option>' + VOC.ETIQUETAS.uso.map(t => `<option>${esc(t)}</option>`).join('');
+    $('#uso-v').onchange = () => carregarVideos();
+  }
   if (VOC.ETIQUETAS?.tema && $('#tema-v').hidden) {
     $('#tema-v').hidden = false;
     $('#tema-v').innerHTML = '<option value="">Todos os temas</option>' + VOC.ETIQUETAS.tema.map(t => `<option>${esc(t)}</option>`).join('');
     $('#tema-v').onchange = () => carregarVideos();
   }
   try {
-    const res = await api('/api/painel/midias?' + p.toString());
+    const [res, resFac] = await Promise.all([api('/api/painel/midias?' + p.toString()), api('/api/painel/facetas?' + pFac.toString())]);
     if (id !== reqVid) return;
     videos = (await res.json()).midias || [];
+    facetasData = await resFac.json();
+    montarFacetas();
+    montarEspacos();
     renderizarVideos();
   } catch {}
 }
@@ -1359,6 +1408,7 @@ function desenharVideo() {
   const trecho = cenaSel ? { ini: cenaSel.ini, fim: cenaSel.fim } : (v._marca || { ini: 0, fim: v.duracao });
   $('#vv-painel').innerHTML = `
     <div class="bloco"><h2>${esc(v.titulo || 'Vídeo sem descrição ainda')}</h2>
+      ${chipsTags(v.tags)}
       <div class="linha">${st(v.exposta ? 'ok' : 'warn', v.exposta ? 'Liberado p/ cliente' : 'Só interno')}<span class="st mono">${tempo(v.duracao)}</span>
         ${v.largura ? `<span class="st mono">${v.largura}×${v.altura}</span>` : ''}${v.tem_audio ? '<span class="st">com áudio</span>' : ''}</div>
       ${v.descricao ? `<p style="margin:0;color:var(--ink2)">${esc(v.descricao)}</p>` : ''}

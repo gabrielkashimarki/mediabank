@@ -60,6 +60,20 @@ pessoas (painel), para agentes (MCP) e para outros sistemas (API v1, API v2 e o 
   - `lote`: o trabalhador do Mac.
 - **Exposição**: nada com criança, descartado ou sem autorização sai. Para fora (v1, v2, link público) só sai o aprovado.
 
+## Tags e filtros
+
+- **Tags**: de 8 a 15 palavras-chave curtas por mídia (objetos, ação, clima, luz e sinônimos), em minúsculas. A IA preenche junto com a
+  descrição; para o que já foi classificado antes, `node scripts/tags-das-descricoes.js` gera a partir do título e da descrição
+  (só texto, custa uma fração da IA de visão). Aparecem como chips na ficha (clicar filtra), viram faceta na lateral (as 40 mais
+  comuns do recorte; marcar duas traz o que tem as duas) e podem ser editadas no visor.
+- **Na busca**: as tags entram no mesmo texto que vira vetor, junto com o título e a descrição. Numa medição com 200 buscas, isso
+  levou o resultado certo para os 5 primeiros em 93% das vezes, contra 86% só com a descrição. O casamento exato de palavra
+  com a tag piorou a ordem, por isso a tag serve para navegar e filtrar, não para pontuar.
+- **Vídeos**: a aba Vídeos usa a mesma lateral da Biblioteca (local, espaço, evento, assunto, luz, plano, tags) e tem ainda
+  **Uso** (TV e telão, rede social, anúncio e institucional, captação), **Formato** (horizontal ou vertical), nota mínima e pessoas.
+  O uso vem da IA de vídeo e mora em `etiquetas.uso`.
+- Na API v2 e no MCP: `tag` (pode repetir), `et_uso` e `orientacao`.
+
 ## Painel
 
 - **Biblioteca** de fotos e **Vídeos**: busca por frase, facetas, visor, edição de campos, aprovação, coleções e link

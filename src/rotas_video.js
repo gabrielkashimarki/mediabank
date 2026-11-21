@@ -18,7 +18,7 @@ function formatarCena(c, base) {
 function formatarVideo(a, base) {
   return {
     id: a.id, tipo: 'video', titulo: a.titulo, descricao: a.descricao, legenda: a.legenda, espaco: a.espaco, local: a.local,
-    tipo_evento: a.tipo_evento, duracao: a.duracao, largura: a.largura, altura: a.altura, orientacao: a.orientacao, tem_audio: !!a.tem_audio,
+    tipo_evento: a.tipo_evento, tags: JSON.parse(a.tags || '[]'), duracao: a.duracao, largura: a.largura, altura: a.altura, orientacao: a.orientacao, tem_audio: !!a.tem_audio,
     nota_estetica: a.nota_estetica, aprovacao: a.aprovacao, exposta: a.exposta == null ? undefined : !!a.exposta,
     thumb_url: `${base}/midias/${a.id}/thumb.jpg`, tira_url: `${base}/midias/${a.id}/tira.jpg`,
     previa_url: a.previa ? `${base}/midias/${a.id}/previa.mp4` : null,
