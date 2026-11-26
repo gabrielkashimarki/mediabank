@@ -13,7 +13,7 @@ pessoas (painel), para agentes (MCP) e para outros sistemas (API v1, API v2 e o 
 | Trabalhador | `py/videos.py` e `py/sinais.py` (no Mac, com `uv`) | O que pesa: vídeo (prévia, cenas, tremido, estética, trechos) e estética das fotos |
 | Vocabulário | `src/vocabularios/<cliente>.js` | Listas fechadas, prompts e regras de exposição de cada cliente |
 | Painel | `public/` | Biblioteca, vídeos, coleções, revisão de peças, guias |
-| Plugin do get-brolls | `getbrolls/mediabank/` | O get-brolls busca cenas do MediaBank e traz o trecho |
+| Plugin do get-brolls | biblioteca de plugins do get-brolls | O get-brolls busca cenas do MediaBank e traz o trecho |
 
 ## Do Drive ao acervo
 
@@ -113,7 +113,7 @@ paralelo.
 | Claude (claude.ai ou Claude Code) | MCP em `/mcp/<chave>` | `buscar_fotos`, `ver_foto`, `buscar_videos`, `ver_video`, `ler_guia`, `pedir_trecho` |
 | Site, bot de atendimento | API v1, cabeçalho `X-API-Key` | `/api/v1/fotos`, `/api/v1/fotos/sugerir`, `/api/v1/catalogo` |
 | Edição (Remotion, scripts) | API v2, cabeçalho `X-API-Key` | `/api/v2/midias`, `/midias/:id`, `/midias/:id/trecho`, `/tarefas/:id`, `/pecas`, `/guias` |
-| get-brolls | plugin `getbrolls/mediabank` | busca cenas e traz o trecho pela v2 |
+| get-brolls | plugin `mediabank` | busca cenas e traz o trecho pela v2 |
 
 ## Plugin do get-brolls
 
@@ -122,14 +122,12 @@ O plugin não fala com o Google: o get-brolls chama o plugin, o plugin chama a A
 
 1. No MediaBank: `node scripts/criar-chave.js getbrolls --cliente <slug> --escopo "v2 acervo"`.
 2. Deixe o trabalhador com `--tarefas` rodando, porque é ele que corta os trechos.
-3. No get-brolls, instale em dois passos (prévia, depois confirmação com o sha256 mostrado):
-   `getbrolls plugins --action install --source <repo>/getbrolls/mediabank`, depois o mesmo comando com
-   `--yes --expect <sha256>`. Pelo marketplace: `getbrolls plugins --action marketplace-add --source <url do repo>` e
-   `install --id mediabank@<marketplace>`.
+3. O plugin `mediabank` é distribuído pela biblioteca de plugins da comunidade do get-brolls, não por este
+   repositório (a inclusão está em revisão). Com a biblioteca adicionada, instale em dois passos: `getbrolls plugins --action install --id
+   mediabank@getbrolls-plugins` mostra a prévia, e o comando que ela traz em `next` confirma.
 4. No `.env` do get-brolls: `MEDIABANK_URL=https://seu-mediabank` e `MEDIABANK_CHAVE=<chave>`
    (opcional `MEDIABANK_ESPERA`, segundos de espera pelo trecho, padrão 600).
-5. O host do seu MediaBank precisa estar em `permissions.network` do `getbrolls-plugin.json`. Mudar o manifesto muda o
-   sha256, e o get-brolls pede revisão de novo. MediaBank rodando na mesma máquina (`http://127.0.0.1`) não precisa.
+5. O host do seu MediaBank precisa estar em `permissions.network` do manifesto do plugin. MediaBank rodando na mesma máquina (`http://127.0.0.1`) não precisa.
 
 Cada cena vira um candidato. A prévia traz até 30 s da cena em 1080p; a aprovação, os direitos e a entrega continuam
 sendo do get-brolls (o `permit` é humano).
